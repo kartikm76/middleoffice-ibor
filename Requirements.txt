@@ -1,0 +1,52 @@
+
+IBOR Platform Requirements
+=======================
+
+Objective: Build an IBOR platform that should:
+
+1. Display transactions by an asset class
+2. Display Positions on those transaction (long / short)
+3. Display cash ladder (cash inflow/outflow) of next 7 days
+4. User should be able to select the position by Portfolio / Account
+
+Proposal:
+1. Setup Kafka topics for each asset class (Bonds / Equities / FX Rates)
+2. Develop a Sprinb boot service that wil listen to these topics and store the data in a db (warehouse / star schema)
+3. Develop a batch scheduler in AWS Glue that will periodically take these transactions and create positions out of them. Each transaction is linked to a 
+4. These positions will be linked to portfolio / account
+ 
+
+
+Running multiple Kafka topics on a local machine primarily involves setting up a Kafka environment and then creating the desired topics within that environment. This does not necessarily require running multiple Kafka brokers, but rather configuring a single or multiple brokers to manage multiple topics. 
+1. Setting up Kafka: 
+
+• Install Kafka: Download and extract the Kafka binaries. 
+• Start Zookeeper: Kafka relies on Zookeeper for coordination. Navigate to your Kafka directory and start Zookeeper: 
+
+    bin/zookeeper-server-start.sh config/zookeeper.properties
+
+• Start Kafka Broker(s): Start your Kafka broker(s). If you're running a single broker, use: 
+
+    bin/kafka-server-start.sh config/server.properties
+
+If you intend to run multiple brokers on the same machine, you will need to create separate server.properties files for each broker, ensuring unique broker.id, listeners (port), and log.dirs for each. Then, start each broker with its respective configuration file. 
+2. Creating Multiple Kafka Topics: 
+Once your Kafka broker(s) are running, you can create multiple topics using the kafka-topics.sh script. 
+bin/kafka-topics.sh --create --topic <topic_name_1> --bootstrap-server localhost:9092 --partitions <num_partitions> --replication-factor <replication_factor>
+bin/kafka-topics.sh --create --topic <topic_name_2> --bootstrap-server localhost:9092 --partitions <num_partitions> --replication-factor <replication_factor>
+# ... repeat for more topics
+
+• Replace &lt;topic_name_1&gt;, &lt;topic_name_2&gt;, etc., with your desired topic names. 
+• --bootstrap-server localhost:9092: Points to your running Kafka broker. Adjust the port if you are using a different one. 
+• --partitions: Specifies the number of partitions for the topic. 
+• --replication-factor: Specifies the replication factor for the topic. For a single-broker local setup, this is typically 1. 
+
+3. Producing and Consuming Messages: 
+You can then use kafka-console-producer.sh and kafka-console-consumer.sh to interact with your multiple topics, sending and receiving messages on each individually. 
+Note: While you can run multiple brokers on a single machine for testing a multi-broker cluster setup, it's not strictly necessary to run multiple topics. A single Kafka broker can effectively manage numerous topics. 
+
+AI responses may include mistakes.
+
+
+
+

@@ -1,0 +1,61 @@
+### Actuator health
+GET http://localhost:8080/actuator/health
+
+### OpenAPI docs
+GET http://localhost:8080/v3/api-docs
+
+### Position (IBM aggregate)
+GET http://localhost:8080/api/structured/position?tickerOrId=IBM
+
+### Position (IBM in ALPHA)
+GET http://localhost:8080/api/structured/position?tickerOrId=IBM&portfolioIds=ALPHA
+
+### Position (IBM in BETA,GM)
+GET http://localhost:8080/api/structured/position?tickerOrId=IBM&portfolioIds=BETA,GM
+
+### Position (Bond in ALPHA)
+GET http://localhost:8080/api/structured/position?tickerOrId=US91282CJK11&portfolioIds=ALPHA
+
+### Cash projection (ALPHA)
+GET http://localhost:8080/api/structured/cash-projection?portfolioIds=ALPHA
+
+### Cash projection (ALPHA,BETA) for 3 days
+GET http://localhost:8080/api/structured/cash-projection?portfolioIds=ALPHA,BETA&days=3
+
+### Negative: invalid portfolio → expect 404
+GET http://localhost:8080/api/structured/position?tickerOrId=IBM&portfolioIds=NOPE
+
+### Notes - ingest (happy path)
+POST http://localhost:8080/api/notes/ingest
+Content-Type: application/json
+
+{
+  "title": "IBM weekly update",
+  "author": "PM Desk",
+  "text": "Trimmed IBM by ~20% after earnings; watch duration risk in credit sleeve.",
+  "instrumentTickers": ["IBM"],
+  "portfolioCodes": ["ALPHA"]
+}
+
+### Notes - ingest (multi-asset, multi-portfolio)
+POST http://localhost:8080/api/notes/ingest
+Content-Type: application/json
+
+{
+  "title": "Weekly wrap",
+  "author": "Risk",
+  "text": "IBM down on guide; AAPL stable. Hedged with USTs.",
+  "instrumentTickers": ["IBM", "AAPL", "US91282CJK11"],
+  "portfolioCodes": ["ALPHA", "BETA"]
+}
+
+### Notes - ingest (negative: missing author) -> expect 400
+POST http://localhost:8080/api/notes/ingest
+Content-Type: application/json
+
+{
+  "title": "Bad request demo",
+  "text": "This should fail because author is missing.",
+  "instrumentTickers": ["IBM"],
+  "portfolioCodes": ["ALPHA"]
+}

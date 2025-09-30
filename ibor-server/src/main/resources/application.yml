@@ -1,0 +1,35 @@
+server:
+  port: 8080
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/ibordb}
+    username: ${DB_USER:ibor_user}
+    password: ${DB_PASSWORD:secret}
+  jpa:
+    hibernate:
+      ddl-auto: none   # keep schema from SQL; or "validate"
+    properties:
+      hibernate.dialect: org.hibernate.dialect.PostgreSQLDialect
+      hibernate.jdbc.time_zone: UTC
+    open-in-view: false
+openai:
+  api-key: ${OPENAI_API_KEY:""}
+  baseUrl: ${OPENAI_BASE_URL:https://api.openai.com/v1}
+  chatModel: ${OPENAI_CHAT_MODEL:gpt-4o-mini}
+  embedModel: ${OPENAI_EMBED_MODEL:text-embedding-3-small}
+rag:
+  topK: 6
+  chunkChars: 1000
+  chunkOverlap: 150
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:s:
+    health:
+      show-details: always
+  health:
+    db:
+      enabled: true
