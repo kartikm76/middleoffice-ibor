@@ -1,0 +1,105 @@
+# Docker DB Command Cheatsheet (IBOR)
+Service name: `db`
+Container name: `ibor_db`
+Database: `ibordb`
+User: `ibor_user`
+Password: `secret`
+Init folder (mounted): `./docker/init` -> `/docker-entrypoint-initdb.d`
+
+> Tip: Commands assume you're in the repository root next to `docker-compose.yml`.
+
+---
+## Bring database up / down
+
+# Build image for db service and start in background
+docker compose up -d --build db
+
+# Stop container
+docker compose stop db
+
+# Stop and remove container
+docker compose rm -f db
+
+# Stop everything and remove containers + **data volume**
+docker compose down -v
+
+# Start again (recreates db and re-runs init scripts in ./docker/init)
+docker compose up -d db
+
+---
+## Health & logs
+
+# Check health status
+docker inspect --format='{{.State.Health.Status}}' ibor_db
+
+# Tail logs
+docker logs -f ibor_db
+
+# Quick readiness (inside container)
+docker exec -it ibor_db pg_isready -U ibor_user -d ibordb
+
+---
+## psql access (inside container)
+
+# Open interactive psql shell
+docker exec -it ibor_db psql -U ibor_user -d ibordb
+
+# Run a quick SQL command
+docker exec -it ibor_db psql -U ibor_user -d ibordb -c "\dt"
+
+# Run a SQL file that is already in the init mount (read-only)
+docker exec -it ibor_db psql -U ibor_user -d ibordb -f /docker-entrypoint-initdb.d/01_schema.sql
+
+---
+## Apply SQL from host into running DB
+
+# Copy a SQL file into the container, then execute it
+cd /Users/kartikmakker/Kartik_Workspace/IBOR_Product/docker
+
+docker cp init/01_schema.sql ibor_db:/tmp/01_schema.sql
+docker exec -it ibor_db psql -U ibor_user -d ibordb -f /tmp/01_schema.sql
+
+docker cp init/02_seed.sql ibor_db:/tmp/02_seed.sql
+docker exec -it ibor_db psql -U ibor_user -d ibordb -f /tmp/02_seed.sql
+
+docker cp init/03_analytics_seed.sql ibor_db:/tmp/03_analytics_seed.sql
+docker exec -it ibor_db psql -U ibor_user -d ibordb -f /tmp/03_analytics_seed.sql
+
+# Apply multiple scripts in order
+for f in 01_schema.sql 02_seed.sql 03_analytics_seed.sql; do   docker cp "./$f" ibor_db:/tmp/"$f";   docker exec -it ibor_db psql -U ibor_user -d ibordb -f /tmp/"$f"; done
+
+---
+## Connect from host (if you have psql installed)
+
+# Using connection URI (port 5432 published to localhost)
+psql "postgresql://ibor_user:secret@localhost:5432/ibordb"
+
+# Run a file from host
+psql "postgresql://ibor_user:secret@localhost:5432/ibordb" -f V31__analytics_seed.sql
+
+---
+## Backups & restore
+
+# Make a dump inside container and copy to host
+docker exec -it ibor_db pg_dump -U ibor_user -d ibordb -f /tmp/backup.sql
+docker cp ibor_db:/tmp/backup.sql ./backup.sql
+
+# Restore a dump into running db
+docker cp ./backup.sql ibor_db:/tmp/backup.sql
+docker exec -it ibor_db psql -U ibor_user -d ibordb -f /tmp/backup.sql
+
+---
+## Useful diagnostics
+
+# List schemas and tables
+docker exec -it ibor_db psql -U ibor_user -d ibordb -c "SELECT n.nspname AS schema, c.relname AS table FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE c.relkind='r' ORDER BY 1,2;"
+
+# Check analytics tables exist
+docker exec -it ibor_db psql -U ibor_user -d ibordb -c "\dt analytics.*"
+
+# Show recent attribution rows
+docker exec -it ibor_db psql -U ibor_user -d ibordb -c "SELECT * FROM analytics.attribution_brinson_daily ORDER BY attribution_as_of_date DESC LIMIT 20;"
+
+---
+## Full rebuild (DANGEROUS: wipes data)
+docker compose down -v && docker compose up -d --build db
