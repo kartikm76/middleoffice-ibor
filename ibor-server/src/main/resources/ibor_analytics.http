@@ -1,0 +1,52 @@
+### ───────────────────────────────────────────────────────────────────
+### IBOR Analytics — HTTP smoke tests
+### Save as: IBOR_analytics.http
+### Open in IntelliJ: it will show “Run” gutter icons per request
+### ───────────────────────────────────────────────────────────────────
+
+@baseUrl = http://localhost:8080
+@from = 2025-09-24
+@to   = 2025-09-26
+@asOf = 2025-09-25
+@pf   = ALPHA
+@pf2  = BETA
+@bench = SPX
+
+###
+# 0) Health (optional)
+GET {{baseUrl}}/actuator/health
+
+###
+# 1) Portfolio returns (daily + period) — ALPHA
+GET {{baseUrl}}/api/analytics/returns/portfolio?portfolioCode={{pf}}&startDate={{from}}&endDate={{to}}
+Accept: application/json
+
+###
+# 1b) Portfolio returns — BETA
+GET {{baseUrl}}/api/analytics/returns/portfolio?portfolioCode={{pf2}}&startDate={{from}}&endDate={{to}}
+Accept: application/json
+
+###
+# 2) Security-level returns (drill-down for a day) — ALPHA @ 2025-09-25
+GET {{baseUrl}}/api/analytics/returns/securities?portfolioCode={{pf}}&asOfDate={{asOf}}
+Accept: application/json
+
+###
+# 3) Benchmark segments (weights & segment returns) — SPX
+GET {{baseUrl}}/api/analytics/benchmark/segments?benchmarkCode={{bench}}&startDate={{from}}&endDate={{to}}
+Accept: application/json
+
+###
+# 4) Brinson attribution (daily, by segment) — ALPHA vs SPX
+GET {{baseUrl}}/api/analytics/attribution/brinson/daily?portfolioCode={{pf}}&benchmarkCode={{bench}}&startDate={{from}}&endDate={{to}}
+Accept: application/json
+
+###
+# 4b) Brinson attribution (daily) — BETA vs SPX
+GET {{baseUrl}}/api/analytics/attribution/brinson/daily?portfolioCode={{pf2}}&benchmarkCode={{bench}}&startDate={{from}}&endDate={{to}}
+Accept: application/json
+
+###
+# 5) Brinson attribution (period aggregate) — ALPHA vs SPX
+GET {{baseUrl}}/api/analytics/attribution/brinson/period?portfolioCode={{pf}}&benchmarkCode={{bench}}&startDate={{from}}&endDate={{to}}
+Accept: application/json
