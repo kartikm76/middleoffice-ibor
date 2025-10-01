@@ -1,4 +1,20 @@
-@use './variables';
-@use './mixins';
-@use './typography';
-@use './utilities';
+:root,
+.light-theme {
+  --color-bg: #f8fafc;
+  --panel-bg: #ffffff;
+  --color-fg: #1e293b;
+  --color-border: #e2e8f0;
+  --color-accent: #4f46e5;
+  --header-bg: #f1f5f9;
+  --header-fg: #334155;
+}
+
+.dark-theme {
+  --color-bg: #1e1e2f;
+  --panel-bg: #2a2a3b;
+  --color-fg: #e2e8f0;
+  --color-border: #3f3f4f;
+  --color-accent: #60a5fa;
+  --header-bg: #32324a;
+  --header-fg: #f8fafc;
+}
