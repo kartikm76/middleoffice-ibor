@@ -1,1 +1,21 @@
-<p>securities-tab works!</p>
+<ng-container *ngIf="vm() as m">
+  <div *ngIf="m.loading">Loading…</div>
+  <div *ngIf="m.error">Error: {{m.error}}</div>
+
+  <ng-container *ngIf="m.data">
+    <p>As of: {{ m.data['asOfDate'] }}</p>
+    <table>
+      <thead>
+      <tr><th>Ticker</th><th>Segment</th><th>Weight %</th><th>Return %</th></tr>
+      </thead>
+      <tbody>
+      <tr *ngFor="let s of m.data.securities">
+        <td>{{ s.ticker }}</td>
+        <td>{{ s.segment }}</td>
+        <td>{{ s.weight | percent:'1.2-2' }}</td>
+        <td>{{ s.returnPct | percent:'1.2-2' }}</td>
+      </tr>
+      </tbody>
+    </table>
+  </ng-container>
+</ng-container>

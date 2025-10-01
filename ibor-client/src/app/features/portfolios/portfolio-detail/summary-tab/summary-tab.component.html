@@ -1,1 +1,13 @@
-<p>summary-tab works!</p>
+<ng-container *ngIf="vm() as m">
+  <div *ngIf="m.loading">Loading…</div>
+  <div *ngIf="m.error">Error: {{m.error}}</div>
+
+  <ng-container *ngIf="m.data">
+    <p><strong>Period Return:</strong> {{ m.data['periodReturn'] | percent:'1.2-2' }}</p>
+    <ul>
+      <li *ngFor="let d of m.data['dailyReturns']">
+        {{ d.asOfDate }} — {{ d.twrr | percent:'1.2-2' }} (MV {{ d.totalMVBase | number }})
+      </li>
+    </ul>
+  </ng-container>
+</ng-container>

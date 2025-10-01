@@ -1,0 +1,66 @@
+### 🔹 1. Test Health / Swagger
+GET http://localhost:8080/swagger-ui/index.html
+
+
+### 🔹 2. Structured API – Positions
+GET http://localhost:8080/api/structured/position?tickerOrId=IBM&portfolioIds=ALPHA
+Accept: application/json
+
+
+### 🔹 3. Structured API – Cash Projection
+GET http://localhost:8080/api/structured/cash-projection?portfolioIds=ALPHA,BETA&days=7
+Accept: application/json
+
+
+### 🔹 4. RAG Hybrid Question
+POST http://localhost:8080/api/rag/hybrid
+Content-Type: application/json
+
+{
+  "question": "What changed in IBM notes last week?",
+  "instrumentTicker": "IBM",
+  "portfolioCodes": ["ALPHA"],
+  "topK": 5
+}
+
+
+### 🔹 5. RAG Assistant (Direct Chat)
+POST http://localhost:8080/api/rag/assistant
+Content-Type: application/json
+
+{
+  "question": "Summarize latest notes for IBM"
+}
+
+
+### 🔹 6. Notes – Ingest New PM Note
+POST http://localhost:8080/api/notes/ingest
+Content-Type: application/json
+
+{
+  "title": "IBM Q3 Commentary",
+  "author": "PM_John",
+  "text": "IBM shows strong cash flow; overweight in ALPHA portfolio.",
+  "instrumentTickers": ["IBM"],
+  "portfolioCodes": ["ALPHA"]
+}
+
+
+### 🔹 7. Analytics – Portfolio Returns
+GET http://localhost:8080/api/analytics/portfolio-returns?portfolioCode=ALPHA&startDate=2025-09-01&endDate=2025-09-30
+Accept: application/json
+
+
+### 🔹 8. Analytics – Security Returns
+GET http://localhost:8080/api/analytics/security-returns?portfolioCode=ALPHA&asOfDate=2025-09-30
+Accept: application/json
+
+
+### 🔹 9. Analytics – Brinson Daily Attribution
+GET http://localhost:8080/api/analytics/brinson-daily?portfolioCode=ALPHA&startDate=2025-09-01&endDate=2025-09-30
+Accept: application/json
+
+
+### 🔹 10. Analytics – Brinson Period Attribution
+GET http://localhost:8080/api/analytics/brinson-period?portfolioCode=ALPHA&startDate=2025-09-01&endDate=2025-09-30
+Accept: application/json

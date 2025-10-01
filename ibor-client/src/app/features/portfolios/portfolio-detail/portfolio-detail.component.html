@@ -1,1 +1,20 @@
-<p>portfolio-detail works!</p>
+<ng-container *ngIf="selected(); else empty">
+  <h3 style="margin:.5rem 0 0">Summary</h3>
+  <app-summary-tab></app-summary-tab>
+
+  <h3 style="margin:1rem 0 0">Attribution</h3>
+  <app-attribution-tab></app-attribution-tab>
+
+  <h3 style="margin:1rem 0 0">Securities</h3>
+  <app-securities-tab></app-securities-tab>
+
+  <h3 style="margin:1rem 0 0">Notes</h3>
+  <app-notes-tab></app-notes-tab>
+
+  <h3 style="margin:1rem 0 0">Explain</h3>
+  <app-explain-tab></app-explain-tab>
+</ng-container>
+
+<ng-template #empty>
+  <p style="opacity:.7">Select a portfolio from the grid above to view details.</p>
+</ng-template>

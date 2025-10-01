@@ -1,1 +1,23 @@
-<p>notes-tab works!</p>
+<div>
+  <label>Title <input #titleBox [value]="title()" (input)="title.set(titleBox.value)" /></label>
+</div>
+<div>
+  <label>Author <input #authorBox [value]="author()" (input)="author.set(authorBox.value)" /></label>
+</div>
+<div>
+  <label>Text <br/>
+    <textarea #textBox rows="4" [value]="text()" (input)="text.set(textBox.value)"></textarea>
+  </label>
+</div>
+<div>
+  <label>Tickers (comma) <input #tickersBox [value]="tickers()" (input)="tickers.set(tickersBox.value)" /></label>
+</div>
+<div>
+  <label>Portfolios (comma) <input #portfoliosBox [value]="portfolios()" (input)="portfolios.set(portfoliosBox.value)" /></label>
+</div>
+
+<button (click)="submit()" [disabled]="loading()">Ingest</button>
+
+<p *ngIf="loading()">Submitting…</p>
+<p *ngIf="error()">Error: {{ error() }}</p>
+<pre *ngIf="result()">{{ result() | json }}</pre>
