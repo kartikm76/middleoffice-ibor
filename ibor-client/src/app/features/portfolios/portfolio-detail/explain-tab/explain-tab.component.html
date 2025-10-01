@@ -1,1 +1,15 @@
-<p>explain-tab works!</p>
+<div>
+  <label>Question
+    <input #qBox [value]="q()" (input)="q.set(qBox.value)" style="width:100%"/>
+  </label>
+</div>
+<div>
+  <label>Ticker
+    <input #tickerBox [value]="ticker()" (input)="ticker.set(tickerBox.value)"/>
+  </label>
+</div>
+<button (click)="ask()" [disabled]="loading()">Ask</button>
+
+<p *ngIf="loading()">Thinking…</p>
+<p *ngIf="error()">Error: {{ error() }}</p>
+<pre *ngIf="answer()">{{ answer() }}</pre>
