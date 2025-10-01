@@ -13,7 +13,7 @@ spring:
       hibernate.jdbc.time_zone: UTC
     open-in-view: false
 openai:
-  api-key: ${OPENAI_API_KEY:""}
+  api-key: ${OPENAI_API_KEY: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}
   baseUrl: ${OPENAI_BASE_URL:https://api.openai.com/v1}
   chatModel: ${OPENAI_CHAT_MODEL:gpt-4o-mini}
   embedModel: ${OPENAI_EMBED_MODEL:text-embedding-3-small}

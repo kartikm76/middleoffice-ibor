@@ -1,0 +1,22 @@
+<div class="toolbar">
+  <input placeholder="Search…" (input)="onSearch($event)" />
+</div>
+
+<table class="grid">
+  <thead>
+  <tr>
+    <th>Code</th><th>Name</th><th>MV</th><th>TWRR %</th><th>Benchmark</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr *ngFor="let r of filtered()"
+      [class.active]="r.code === state.selectedPortfolio()"
+      (click)="select(r.code)">
+    <td>{{ r.code }}</td>
+    <td>{{ r.name }}</td>
+    <td>{{ r.mv | number:'1.0-0' }}</td>
+    <td>{{ r.twrr | number:'1.2-2' }}</td>
+    <td>{{ r.benchmark }}</td>
+  </tr>
+  </tbody>
+</table>
