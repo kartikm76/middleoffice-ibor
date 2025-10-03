@@ -180,9 +180,35 @@ tr.mat-row:hover:not(.selected) td { background: var(--row-hover); transition: b
 .light-theme .mat-mdc-form-field .mdc-notched-outline__notch,
 .light-theme .mat-mdc-form-field .mdc-notched-outline__trailing { border-color: rgba(0,0,0,0.18); }
 
+/* Focus outline accent and subscript text color */
+.dark-theme .mat-mdc-form-field.mat-focused .mdc-notched-outline__leading,
+.dark-theme .mat-mdc-form-field.mat-focused .mdc-notched-outline__notch,
+.dark-theme .mat-mdc-form-field.mat-focused .mdc-notched-outline__trailing { border-color: var(--accent); }
+
+.light-theme .mat-mdc-form-field.mat-focused .mdc-notched-outline__leading,
+.light-theme .mat-mdc-form-field.mat-focused .mdc-notched-outline__notch,
+.light-theme .mat-mdc-form-field.mat-focused .mdc-notched-outline__trailing { border-color: var(--accent); }
+
+.dark-theme .mat-mdc-form-field-subscript-wrapper,
+.light-theme .mat-mdc-form-field-subscript-wrapper { color: var(--muted); }
+
 /* Placeholder readability */
 .dark-theme .mat-mdc-input-element::placeholder,
 .light-theme .mat-mdc-input-element::placeholder { color: var(--muted); opacity: 1; }
 
 /* Update search field MDC class target */
 .panel-card .search-field .mat-mdc-form-field-infix { background: transparent; padding: 6px 8px; }
+
+/* Transparent backgrounds for MDC text fields (both themes) */
+.dark-theme .mat-mdc-text-field-wrapper,
+.light-theme .mat-mdc-text-field-wrapper { background: transparent !important; }
+.dark-theme .mat-mdc-form-field-focus-overlay,
+.light-theme .mat-mdc-form-field-focus-overlay { background: transparent !important; }
+
+/* Force outline colors via theme border token */
+.light-theme .mat-mdc-form-field .mdc-notched-outline__leading,
+.light-theme .mat-mdc-form-field .mdc-notched-outline__notch,
+.light-theme .mat-mdc-form-field .mdc-notched-outline__trailing { border-color: var(--border) !important; }
+.dark-theme .mat-mdc-form-field .mdc-notched-outline__leading,
+.dark-theme .mat-mdc-form-field .mdc-notched-outline__notch,
+.dark-theme .mat-mdc-form-field .mdc-notched-outline__trailing { border-color: var(--border) !important; }
