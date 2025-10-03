@@ -1,41 +1,59 @@
 @use '@angular/material' as mat;
 
-/* Core baseline (typography classes, density tokens, etc.) */
+/* Core baseline */
 @include mat.core();
 
-/* Define a compact dark theme close to our CSS variables */
+/* Palettes */
 $primary: mat.define-palette(mat.$pink-palette, 500);
 $accent:  mat.define-palette(mat.$indigo-palette, 500);
 $warn:    mat.define-palette(mat.$red-palette);
 
-$theme: mat.define-dark-theme((
-  color: (
-    primary: $primary,
-    accent:  $accent,
-    warn:    $warn,
-  ),
+$dark-theme: mat.define-dark-theme((
+  color: (primary: $primary, accent: $accent, warn: $warn),
   typography: mat.define-typography-config(),
   density: 0,
 ));
 
-/* Only include themes for the Material components we actually use */
-@include mat.button-theme($theme);
-@include mat.icon-theme($theme);
-@include mat.toolbar-theme($theme);
-@include mat.card-theme($theme);
-@include mat.form-field-theme($theme);
-@include mat.input-theme($theme);
-@include mat.tabs-theme($theme);
-@include mat.ripple-theme($theme);
-@include mat.progress-bar-theme($theme);
+$light-theme: mat.define-light-theme((
+  color: (primary: $primary, accent: $accent, warn: $warn),
+  typography: null,
+  density: null,
+));
 
-/* Light touch overrides to align with our CSS variables */
-.mat-app-background, .mat-toolbar, .mat-sidenav { background: var(--bg-100); color: #e0e0e0; }
-.mat-card, .panel-card, .detail-card { background: var(--bg-200); color: #e0e0e0; }
+/* Apply only the components we use, scoped to theme root classes */
+.dark-theme {
+  @include mat.button-theme($dark-theme);
+  @include mat.icon-theme($dark-theme);
+  @include mat.toolbar-theme($dark-theme);
+  @include mat.card-theme($dark-theme);
+  @include mat.form-field-theme($dark-theme);
+  @include mat.input-theme($dark-theme);
+  @include mat.tabs-theme($dark-theme);
+  @include mat.ripple-theme($dark-theme);
+  @include mat.progress-bar-theme($dark-theme);
+}
+
+.light-theme {
+  @include mat.button-theme($light-theme);
+  @include mat.icon-theme($light-theme);
+  @include mat.toolbar-theme($light-theme);
+  @include mat.card-theme($light-theme);
+  @include mat.form-field-theme($light-theme);
+  @include mat.input-theme($light-theme);
+  @include mat.tabs-theme($light-theme);
+  @include mat.ripple-theme($light-theme);
+  @include mat.progress-bar-theme($light-theme);
+}
+
+/* Align component container backgrounds with our CSS variables */
+.mat-app-background, .mat-toolbar, .mat-sidenav { background: var(--bg-100); color: var(--fg); }
+.mat-card, .panel-card, .detail-card { background: var(--bg-200); color: var(--fg); }
 
 /* Outlined form field border subtle in dark */
-.mat-form-field-appearance-outline .mat-form-field-outline { stroke: rgba(255,255,255,0.06); }
+.mat-form-field-appearance-outline .mat-form-field-outline { stroke: rgba(0,0,0,0.12); }
+.dark-theme .mat-form-field-appearance-outline .mat-form-field-outline { stroke: rgba(255,255,255,0.06); }
 
 /* Minimal scrollbar styling for webkit */
 ::-webkit-scrollbar { height: 8px; width: 8px; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.04); border-radius: 6px; }
+::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 6px; }
+.dark-theme ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.04); }

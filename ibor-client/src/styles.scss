@@ -11,7 +11,7 @@
   z-index: 50;
   height: 64px;
   padding: 12px 20px;
-  border-bottom: 1px solid rgba(255,255,255,0.03);
+  border-bottom: 1px solid var(--border);
 }
 
 /* Only if you want a little container spacing */
@@ -57,7 +57,7 @@ body {
   margin: 0;
   min-height: 100vh;
   background: var(--bg-100);
-  color: #e0e0e0; /* readable on dark background */
+  color: var(--fg);
   font-family: Roboto, "Helvetica Neue", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -91,11 +91,11 @@ body {
 .portfolio-table { width:100%; border-radius:16px; overflow:hidden; background:transparent; }
 .search-field { width:260px; margin-bottom:0.5rem; }
 
-.mat-header-row, .mat-row { border-bottom: 1px solid rgba(255,255,255,0.08); }
+.mat-header-row, .mat-row { border-bottom: 1px solid var(--border); }
 .mat-header-cell { font-weight:600; }
 .mat-cell, .mat-header-cell { padding:14px 24px; vertical-align:middle; }
 
 /* subtle hover */
-tr.mat-row:hover:not(.selected) td { background: rgba(255,255,255,0.04); transition: background 0.15s; }
+tr.mat-row:hover:not(.selected) td { background: var(--row-hover); transition: background 0.15s; }
 
 /* removed global AG Grid theme overrides; they now live in the portfolio grid component SCSS */
