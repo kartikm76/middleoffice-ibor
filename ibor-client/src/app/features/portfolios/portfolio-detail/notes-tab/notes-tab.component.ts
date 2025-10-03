@@ -15,6 +15,7 @@ import { FormsModule } from '@angular/forms';
   standalone: true,
   imports: [CommonModule, FormsModule, MatFormFieldModule, MatInputModule, MatButtonModule, MatProgressBarModule],
   templateUrl: './notes-tab.component.html',
+  styleUrls: ['./notes-tab.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class NotesTabComponent {

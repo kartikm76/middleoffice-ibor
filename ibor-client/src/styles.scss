@@ -98,4 +98,69 @@ body {
 /* subtle hover */
 tr.mat-row:hover:not(.selected) td { background: var(--row-hover); transition: background 0.15s; }
 
-/* removed global AG Grid theme overrides; they now live in the portfolio grid component SCSS */
+/* Shared data-table styling (theme-aware) */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+}
+.data-table thead th {
+  font-weight: 600;
+  text-align: left;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 12px;
+}
+.data-table tbody td {
+  padding: 10px 12px;
+  border-top: 1px solid var(--border);
+}
+.data-table tbody tr:hover td {
+  background: var(--row-hover);
+}
+.data-table .num { text-align: right; }
+
+/* Simple KPI row above tables */
+.kpi-row { display:flex; gap:16px; margin: 4px 0 8px; }
+.kpi { background: transparent; border: 1px dashed var(--border); border-radius: 8px; padding: 8px 12px; }
+.kpi-label { font-size: 12px; color: var(--muted); }
+.kpi-value { font-weight: 700; }
+
+/* Global AG Grid popup/menu styling, scoped by theme (for popups attached to <body>) */
+.dark-theme .ag-theme-alpine .ag-popup,
+.dark-theme .ag-theme-alpine .ag-menu,
+.dark-theme .ag-theme-alpine .ag-filter-toolpanel,
+.dark-theme .ag-theme-alpine .ag-filter,
+.dark-theme .ag-theme-alpine .ag-menu-option-list {
+  background: #2a2f3a !important;
+  color: var(--fg) !important;
+  border: 1px solid rgba(255,255,255,0.12) !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4) !important;
+}
+.dark-theme .ag-theme-alpine .ag-input-field-input,
+.dark-theme .ag-theme-alpine input,
+.dark-theme .ag-theme-alpine select,
+.dark-theme .ag-theme-alpine .ag-picker-field-wrapper {
+  background: rgba(255,255,255,0.06) !important;
+  color: var(--fg) !important;
+  border: 1px solid rgba(255,255,255,0.18) !important;
+}
+
+.light-theme .ag-theme-alpine .ag-popup,
+.light-theme .ag-theme-alpine .ag-menu,
+.light-theme .ag-theme-alpine .ag-filter-toolpanel,
+.light-theme .ag-theme-alpine .ag-filter,
+.light-theme .ag-theme-alpine .ag-menu-option-list {
+  background: #ffffff !important;
+  color: #1e293b !important;
+  border: 1px solid rgba(0,0,0,0.12) !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.18) !important;
+}
+.light-theme .ag-theme-alpine .ag-input-field-input,
+.light-theme .ag-theme-alpine input,
+.light-theme .ag-theme-alpine select,
+.light-theme .ag-theme-alpine .ag-picker-field-wrapper {
+  background: #f8fafc !important;
+  color: #1e293b !important;
+  border: 1px solid rgba(0,0,0,0.12) !important;
+}
