@@ -1,37 +1,41 @@
-/* Minimal Material theme replacement to keep CSS small while preserving necessary colors.
-   We intentionally keep this tiny — full Material theming (mixins) would add weight.
-   This file overrides a few key classes used by Angular Material components in the app. */
+@use '@angular/material' as mat;
 
-/* Basic typography baseline */
-.mat-typography, body {
-  font-family: Roboto, "Helvetica Neue", Arial, sans-serif;
-}
+/* Core baseline (typography classes, density tokens, etc.) */
+@include mat.core();
 
-/* Small set of color tokens to align with our dark theme */
-.mat-app-background, .mat-toolbar, .mat-sidenav {
-  background: var(--bg-100) !important;
-  color: #e0e0e0 !important;
-}
+/* Define a compact dark theme close to our CSS variables */
+$primary: mat.define-palette(mat.$pink-palette, 500);
+$accent:  mat.define-palette(mat.$indigo-palette, 500);
+$warn:    mat.define-palette(mat.$red-palette);
 
-.mat-card, .panel-card, .detail-card {
-  background: var(--bg-200) !important;
-  color: #e0e0e0 !important;
-}
+$theme: mat.define-dark-theme((
+  color: (
+    primary: $primary,
+    accent:  $accent,
+    warn:    $warn,
+  ),
+  typography: mat.define-typography-config(),
+  density: 0,
+));
 
-.mat-button, .mat-icon-button, button.mat-button {
-  color: var(--muted);
-}
+/* Only include themes for the Material components we actually use */
+@include mat.button-theme($theme);
+@include mat.icon-theme($theme);
+@include mat.toolbar-theme($theme);
+@include mat.card-theme($theme);
+@include mat.form-field-theme($theme);
+@include mat.input-theme($theme);
+@include mat.tabs-theme($theme);
+@include mat.ripple-theme($theme);
+@include mat.progress-bar-theme($theme);
 
-.mat-form-field-appearance-outline .mat-form-field-outline {
-  stroke: rgba(255,255,255,0.06);
-}
+/* Light touch overrides to align with our CSS variables */
+.mat-app-background, .mat-toolbar, .mat-sidenav { background: var(--bg-100); color: #e0e0e0; }
+.mat-card, .panel-card, .detail-card { background: var(--bg-200); color: #e0e0e0; }
 
-/* Keep ripple subtle */
-.mat-ripple-element { opacity: 0.06 !important; }
+/* Outlined form field border subtle in dark */
+.mat-form-field-appearance-outline .mat-form-field-outline { stroke: rgba(255,255,255,0.06); }
 
 /* Minimal scrollbar styling for webkit */
 ::-webkit-scrollbar { height: 8px; width: 8px; }
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.04); border-radius: 6px; }
-
-/* End of minimal theme */
-
