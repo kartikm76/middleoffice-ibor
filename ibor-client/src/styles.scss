@@ -164,3 +164,25 @@ tr.mat-row:hover:not(.selected) td { background: var(--row-hover); transition: b
   color: #1e293b !important;
   border: 1px solid rgba(0,0,0,0.12) !important;
 }
+
+/* Material MDC form-field theme tweaks for readability */
+.dark-theme .mat-mdc-form-field .mdc-floating-label,
+.light-theme .mat-mdc-form-field .mdc-floating-label { color: var(--muted); }
+
+.dark-theme .mat-mdc-input-element,
+.light-theme .mat-mdc-input-element { color: var(--fg); }
+
+.dark-theme .mat-mdc-form-field .mdc-notched-outline__leading,
+.dark-theme .mat-mdc-form-field .mdc-notched-outline__notch,
+.dark-theme .mat-mdc-form-field .mdc-notched-outline__trailing { border-color: rgba(255,255,255,0.18); }
+
+.light-theme .mat-mdc-form-field .mdc-notched-outline__leading,
+.light-theme .mat-mdc-form-field .mdc-notched-outline__notch,
+.light-theme .mat-mdc-form-field .mdc-notched-outline__trailing { border-color: rgba(0,0,0,0.18); }
+
+/* Placeholder readability */
+.dark-theme .mat-mdc-input-element::placeholder,
+.light-theme .mat-mdc-input-element::placeholder { color: var(--muted); opacity: 1; }
+
+/* Update search field MDC class target */
+.panel-card .search-field .mat-mdc-form-field-infix { background: transparent; padding: 6px 8px; }
