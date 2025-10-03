@@ -1,8 +1,8 @@
-import { Component, inject, signal, computed } from '@angular/core';
+import { Component, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { of, Observable } from 'rxjs';
-import { switchMap, map, startWith, catchError } from 'rxjs/operators';
+import { switchMap, map, catchError, tap, debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { AppStateService } from '../../../../core/services/app-state/app-state.service';
 import { AnalyticsApiService } from '../../../../core/services/api/analytics-api/analytics-api.service';
 import { PortfolioReturnResponse } from '../../../../core/services/api/analytics-api/analytics-api.models';
@@ -18,6 +18,7 @@ type Vm = {
   standalone: true,
   imports: [CommonModule],
   templateUrl: './summary-tab.component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SummaryTabComponent {
   private state = inject(AppStateService);
@@ -31,13 +32,21 @@ export class SummaryTabComponent {
   vm = signal<Vm>({ loading: true, error: null, data: null });
 
   sub = (toObservable(this.inputs).pipe(
+    debounceTime(120),
+    distinctUntilChanged((a, b) => {
+      if (a === b) return true;
+      if (!a || !b) return false;
+      return a.pf === b.pf && a.start.getTime() === b.start.getTime() && a.end.getTime() === b.end.getTime();
+    }),
     switchMap(inp => {
-      if (!inp) return of({ loading: false, error: null, data: null } as Vm);
+      if (!inp) return of({ loading: false, error: null, data: this.vm().data } as Vm);
       const { pf, start, end } = inp as { pf: string; start: Date; end: Date };
+      // set loading without clearing data to avoid flicker
+      this.vm.update(v => ({ ...v, loading: true, error: null }));
       return this.api.getPortfolioReturnsD(pf, start, end).pipe(
+        tap(() => {/* keep spinner only; content stays */}),
         map(data => ({ loading: false, error: null, data })),
-        startWith({ loading: true, error: null, data: null } as Vm),
-        catchError(e => of({ loading: false, error: e?.message ?? 'Failed', data: null } as Vm))
+        catchError(e => of({ loading: false, error: e?.message ?? 'Failed', data: this.vm().data } as Vm))
       );
     })
   ) as Observable<Vm>);

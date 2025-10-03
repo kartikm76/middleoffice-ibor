@@ -1,15 +1,21 @@
 // Angular component for the Notes tab, allowing users to submit notes
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NotesApiService } from '../../../../core/services/api/notes-api/notes-api.service';
 import { IngestNoteRequest } from '../../../../core/services/api/notes-api/notes-api.models';
 import { AppStateService } from '../../../../core/services/app-state/app-state.service';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-notes-tab',
   standalone: true,
-  imports: [CommonModule],
-  templateUrl: './notes-tab.component.html'
+  imports: [CommonModule, FormsModule, MatFormFieldModule, MatInputModule, MatButtonModule, MatProgressBarModule],
+  templateUrl: './notes-tab.component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class NotesTabComponent {
   // Inject Notes API and application state services
@@ -28,8 +34,21 @@ export class NotesTabComponent {
   error  = signal<string | null>(null);
   loading = signal(false);
 
+  // ngModel properties for form fields
+  titleValue = this.title();
+  authorValue = this.author();
+  textValue = this.text();
+  tickersValue = this.tickers();
+  portfoliosValue = this.portfolios();
+
   // Submit the note to the API
   submit() {
+    // Sync ngModel values to signals
+    this.title.set(this.titleValue);
+    this.author.set(this.authorValue);
+    this.text.set(this.textValue);
+    this.tickers.set(this.tickersValue);
+    this.portfolios.set(this.portfoliosValue);
     this.loading.set(true);
     this.error.set(null);
     // Build the request object from form signals

@@ -1,6 +1,5 @@
 <ng-container *ngIf="vm() as m">
-  <div *ngIf="m.loading">Loading…</div>
-  <div *ngIf="m.error">Error: {{m.error}}</div>
+  <div *ngIf="m.error" style="color:#ff8a80; font-weight:600; margin-bottom:8px;">Error: {{m.error}}</div>
 
   <ng-container *ngIf="m.data">
     <p><strong>Period Return:</strong> {{ m.data['periodReturn'] | percent:'1.2-2' }}</p>

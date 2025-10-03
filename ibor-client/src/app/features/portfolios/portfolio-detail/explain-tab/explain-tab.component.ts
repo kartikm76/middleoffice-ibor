@@ -3,11 +3,16 @@ import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RagApiService } from '../../../../core/services/api/rag-api/rag-api.service';
 import { AppStateService } from '../../../../core/services/app-state/app-state.service';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-explain-tab',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule, MatFormFieldModule, MatInputModule, MatButtonModule, MatProgressBarModule],
   templateUrl: './explain-tab.component.html'
 })
 export class ExplainTabComponent {
@@ -22,8 +27,15 @@ export class ExplainTabComponent {
   error = signal<string | null>(null);
   answer = signal<string | null>(null);
 
+  // ngModel properties for form fields
+  public qValue = this.q();
+  public tickerValue = this.ticker();
+
   // Ask the RAG API a question and handle the response
   ask() {
+    // Sync ngModel values to signals
+    this.q.set(this.qValue);
+    this.ticker.set(this.tickerValue);
     this.loading.set(true);
     this.error.set(null);
     this.answer.set(null);

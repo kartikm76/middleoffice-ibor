@@ -1,15 +1,21 @@
-<div>
-  <label>Question
-    <input #qBox [value]="q()" (input)="q.set(qBox.value)" style="width:100%"/>
-  </label>
-</div>
-<div>
-  <label>Ticker
-    <input #tickerBox [value]="ticker()" (input)="ticker.set(tickerBox.value)"/>
-  </label>
-</div>
-<button (click)="ask()" [disabled]="loading()">Ask</button>
+<form class="explain-form" (ngSubmit)="ask()">
+  <mat-form-field appearance="outline" class="explain-field">
+    <mat-label>Question</mat-label>
+    <input matInput [(ngModel)]="qValue" name="question" />
+  </mat-form-field>
 
-<p *ngIf="loading()">Thinking…</p>
-<p *ngIf="error()">Error: {{ error() }}</p>
-<pre *ngIf="answer()">{{ answer() }}</pre>
+  <mat-form-field appearance="outline" class="explain-field">
+    <mat-label>Ticker</mat-label>
+    <input matInput [(ngModel)]="tickerValue" name="ticker" />
+  </mat-form-field>
+
+  <div class="explain-actions">
+    <button mat-raised-button color="accent" type="submit" [disabled]="loading()">Ask</button>
+  </div>
+
+  <div class="explain-feedback">
+    <mat-progress-bar *ngIf="loading()" mode="indeterminate"></mat-progress-bar>
+    <div *ngIf="error()" class="explain-error">Error: {{ error() }}</div>
+    <div *ngIf="answer()" class="explain-hint">{{ answer() }}</div>
+  </div>
+</form>
