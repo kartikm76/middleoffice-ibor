@@ -33,7 +33,7 @@ tr.selected td, tr.active td { color: #fff !important; }
 
 /* Search input inside the card */
 .panel-card .search-field .mat-form-field-infix { background: transparent; padding: 6px 8px; }
-.panel-card .search-field input { color: #e0e0e0; caret-color: var(--accent); }
+.panel-card .search-field input { color: var(--fg); caret-color: var(--accent); }
 
 /* Responsive */
 @media (max-width: 900px) {
@@ -52,15 +52,29 @@ tr.selected td, tr.active td { color: #fff !important; }
 }
 
 /* Optional: make the card content flush with grid */
-:host ::ng-deep .ag-theme-alpine {
+/* AG Grid theme variables per theme for readability */
+:host-context(.dark-theme) ::ng-deep .ag-theme-alpine {
   --ag-foreground-color: #e0e0e0;
   --ag-background-color: transparent;
   --ag-odd-row-background-color: rgba(255,255,255,0.02);
-  --ag-header-foreground-color: #e0e0e0;
-  --ag-header-background-color: rgba(255,255,255,0.06);
+  --ag-header-foreground-color: #f0f0f0;
+  --ag-header-background-color: #2a2f3a;
   --ag-row-hover-color: rgba(255,255,255,0.08);
   --ag-borders: solid 1px rgba(255,255,255,0.08);
   --ag-row-border-color: rgba(255,255,255,0.08);
   --ag-header-column-separator-color: rgba(255,255,255,0.08);
+  --ag-row-height: 42px;
+}
+
+:host-context(.light-theme) ::ng-deep .ag-theme-alpine {
+  --ag-foreground-color: #1e293b; /* slate-800 */
+  --ag-background-color: transparent;
+  --ag-odd-row-background-color: rgba(0,0,0,0.02);
+  --ag-header-foreground-color: #1e293b;
+  --ag-header-background-color: #f1f5f9; /* light header */
+  --ag-row-hover-color: rgba(0,0,0,0.06);
+  --ag-borders: solid 1px rgba(0,0,0,0.08);
+  --ag-row-border-color: rgba(0,0,0,0.08);
+  --ag-header-column-separator-color: rgba(0,0,0,0.08);
   --ag-row-height: 42px;
 }

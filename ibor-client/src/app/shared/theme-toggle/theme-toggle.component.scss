@@ -5,11 +5,10 @@
   padding: 6px 10px;
   border-radius: 8px;
   background: transparent;
-  border: 1px solid rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
   color: var(--muted);
   cursor: pointer;
   font-weight: 600;
 }
 .theme-toggle .icon { font-size: 16px; }
 .theme-toggle:focus-visible { outline: 3px solid rgba(233,30,99,0.18); outline-offset: 2px; }
-

@@ -6,7 +6,7 @@
   margin: 0.6rem auto 0 auto;
   padding: 0;
   overflow: visible;
-  color: #f3f3f3 !important;
+  color: var(--fg) !important;
 }
 
 .tab-pad {
@@ -20,11 +20,11 @@
 
 /* Keep strong text slightly brighter */
 .detail-card strong {
-  color: #fff !important;
+  color: var(--fg) !important;
   font-weight: 600;
 }
 .detail-card ul, .detail-card li {
-  color: #e0e0e0 !important;
+  color: var(--fg) !important;
 }
 
 /* Show Material tab header for proper navigation */
