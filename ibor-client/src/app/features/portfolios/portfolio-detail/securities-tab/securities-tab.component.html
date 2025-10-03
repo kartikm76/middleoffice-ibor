@@ -1,19 +1,24 @@
 <ng-container *ngIf="vm() as m">
   <div *ngIf="m.error" style="color:#ff8a80; font-weight:600; margin-bottom:8px;">Error: {{m.error}}</div>
 
-  <ng-container *ngIf="m.data">
-    <p>As of: {{ m.data['asOfDate'] }}</p>
-    <table>
+  <ng-container *ngIf="m.data as d">
+    <p>As of: {{ d['asOfDate'] }}</p>
+    <table class="data-table">
       <thead>
-      <tr><th>Ticker</th><th>Segment</th><th>Weight %</th><th>Return %</th></tr>
+        <tr>
+          <th>Ticker</th>
+          <th>Segment</th>
+          <th class="num">Weight %</th>
+          <th class="num">Return %</th>
+        </tr>
       </thead>
       <tbody>
-      <tr *ngFor="let s of m.data.securities">
-        <td>{{ s.ticker }}</td>
-        <td>{{ s.segment }}</td>
-        <td>{{ s.weight | percent:'1.2-2' }}</td>
-        <td>{{ s.returnPct | percent:'1.2-2' }}</td>
-      </tr>
+        <tr *ngFor="let s of d.securities">
+          <td>{{ s.ticker }}</td>
+          <td>{{ s.segment }}</td>
+          <td class="num">{{ s.weight   | percent:'1.2-2' }}</td>
+          <td class="num">{{ s.returnPct| percent:'1.2-2' }}</td>
+        </tr>
       </tbody>
     </table>
   </ng-container>

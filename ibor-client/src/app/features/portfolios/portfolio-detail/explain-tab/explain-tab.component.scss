@@ -1,18 +1,32 @@
 .explain-form {
   display: grid;
-  grid-template-columns: 2fr 1fr auto;
+  grid-template-columns: 2fr 1fr;
   gap: 16px;
-  align-items: end;
 }
 
-.explain-field { width: 100%; }
+.explain-field {
+  width: 100%;
+}
 
-.explain-actions { display: flex; justify-content: flex-end; }
+.explain-actions,
+.explain-feedback {
+  grid-column: 1 / -1;
+}
 
-.explain-feedback { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; }
+.explain-actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.explain-feedback {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .explain-error { color: #ff8a80; font-weight: 600; }
-.explain-hint { color: var(--muted); white-space: pre-wrap; }
 
 @media (max-width: 900px) {
   .explain-form { grid-template-columns: 1fr; }
 }
+

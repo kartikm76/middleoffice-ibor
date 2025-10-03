@@ -13,7 +13,8 @@ import { FormsModule } from '@angular/forms';
   selector: 'app-explain-tab',
   standalone: true,
   imports: [CommonModule, FormsModule, MatFormFieldModule, MatInputModule, MatButtonModule, MatProgressBarModule],
-  templateUrl: './explain-tab.component.html'
+  templateUrl: './explain-tab.component.html',
+  styleUrls: ['./explain-tab.component.scss'],
 })
 export class ExplainTabComponent {
   // Inject RAG API and application state services

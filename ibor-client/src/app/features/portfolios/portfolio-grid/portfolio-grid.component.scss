@@ -78,3 +78,5 @@ tr.selected td, tr.active td { color: #fff !important; }
   --ag-header-column-separator-color: rgba(0,0,0,0.08);
   --ag-row-height: 42px;
 }
+
+/* Remove duplicate popup/menu styles; they live in global styles.scss now */
