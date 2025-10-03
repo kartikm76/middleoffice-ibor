@@ -1,10 +1,5 @@
-@import '~@angular/material/prebuilt-themes/pink-bluegrey.css';
 /* Cohesive theme variables and refined header/panel/footer styles */
 @import './styles/_theme.scss';
-
-/* Import AG Grid Community base and dark theme CSS globally so the grid renders with proper styles */
-@import 'ag-grid-community/styles/ag-grid.css';
-@import 'ag-grid-community/styles/ag-theme-alpine.css';
 
 /* Make the app header visually distinct and sticky so it anchors the UI */
 .app-header {
@@ -103,15 +98,4 @@ body {
 /* subtle hover */
 tr.mat-row:hover:not(.selected) td { background: rgba(255,255,255,0.04); transition: background 0.15s; }
 
-/* Global AG Grid theme adjustments for dark background */
-.ag-theme-alpine {
-  --ag-foreground-color: #e0e0e0;
-  --ag-background-color: #242730; /* slight contrast from panel */
-  --ag-odd-row-background-color: rgba(255,255,255,0.02);
-  --ag-header-foreground-color: #f0f0f0;
-  --ag-header-background-color: #2a2f3a;
-  --ag-row-hover-color: rgba(255,255,255,0.08);
-  --ag-borders: solid 1px rgba(255,255,255,0.08);
-  --ag-row-border-color: rgba(255,255,255,0.08);
-  --ag-header-column-separator-color: rgba(255,255,255,0.08);
-}
+/* removed global AG Grid theme overrides; they now live in the portfolio grid component SCSS */

@@ -1,4 +1,4 @@
-import { Component, inject, signal, effect, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, signal, effect, ChangeDetectionStrategy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 // AG Grid
 import { AgGridAngular } from 'ag-grid-angular';
@@ -24,7 +24,7 @@ type Row = { code: string; name: string; benchmark: string; mv: number; twrr: nu
   styleUrls: ['./portfolio-grid.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class PortfolioGridComponent {
+export class PortfolioGridComponent implements OnInit {
   state = inject(AppStateService);
 
   private all = signal<Row[]>([
@@ -97,4 +97,26 @@ export class PortfolioGridComponent {
     const code = this.state.selectedPortfolio();
     if (code && this.gridApi) this.selectRowByCode(code);
   });
+
+  ngOnInit(): void {
+    this.ensureGridStyles();
+  }
+
+  private ensureGridStyles() {
+    const d = document;
+    const base = d.querySelector('base')?.getAttribute('href') || '/';
+    const join = (p: string) => (base.endsWith('/') ? base : base + '/') + p.replace(/^\//, '');
+
+    const ensure = (id: string, href: string) => {
+      if (d.getElementById(id)) return;
+      const link = d.createElement('link');
+      link.id = id;
+      link.rel = 'stylesheet';
+      link.href = href;
+      d.head.appendChild(link);
+    };
+
+    ensure('ag-grid-base-css', join('assets/vendor/ag-grid/ag-grid.css'));
+    ensure('ag-theme-alpine-css', join('assets/vendor/ag-grid/ag-theme-alpine.css'));
+  }
 }
