@@ -1,0 +1,45 @@
+.notes-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.notes-field {
+  width: 100%;
+}
+
+/* Textarea should span full width */
+.notes-field textarea {
+  min-height: 120px;
+}
+
+/* Actions and feedback span both columns for alignment */
+.notes-actions,
+.notes-feedback {
+  grid-column: 1 / -1;
+}
+
+.notes-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.notes-feedback {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.notes-error {
+  color: #ff8a80;
+  font-weight: 600;
+}
+.notes-hint {
+  color: var(--muted);
+}
+
+@media (max-width: 900px) {
+  .notes-form {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,29 @@
+/* Theme variables for the IBOR app - imported by src/styles.scss */
+:root {
+  --container-max: 1200px;
+  --bg-100: #1f1f23;
+  --bg-200: #23232a;
+  --muted: #bdbdbd;
+  --accent: #e91e63; /* primary accent (pink) */
+  --select: #4f46e5; /* match existing grid selection (indigo) */
+  --card-radius: 12px;
+  --shadow-1: 0 10px 30px rgba(2,6,23,0.45);
+}
+
+/* Dark theme (default) */
+.dark-theme {
+  --bg-100: #1f1f23;
+  --bg-200: #23232a;
+  --muted: #bdbdbd;
+  --accent: #e91e63;
+  --select: #4f46e5;
+}
+
+/* Light theme */
+.light-theme {
+  --bg-100: #fafafa;
+  --bg-200: #ffffff;
+  --muted: #424242;
+  --accent: #ad1457; /* slightly deeper accent in light */
+  --select: #5c6bc0; /* indigo 400 */
+}

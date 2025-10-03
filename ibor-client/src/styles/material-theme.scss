@@ -1,35 +1,37 @@
-:root, .light-theme, .dark-theme {
-  .mat-mdc-table {
-    width: 100%;
-    background: var(--panel-bg);
-    color: var(--color-fg);
-    border-radius: 10px;
-  }
-  .mat-mdc-header-row {
-    background: var(--header-bg);
-    color: var(--header-fg);
-    font-weight: 600;
-  }
-  .mat-mdc-row:hover {
-    background: color-mix(in srgb, var(--color-accent) 10%, var(--panel-bg));
-  }
+/* Minimal Material theme replacement to keep CSS small while preserving necessary colors.
+   We intentionally keep this tiny — full Material theming (mixins) would add weight.
+   This file overrides a few key classes used by Angular Material components in the app. */
 
-  .mat-mdc-tab-group {
-    background: var(--panel-bg);
-    border: 1px solid var(--color-border);
-    border-radius: 10px;
-  }
-  .mat-mdc-tab-header {
-    border-bottom: 2px solid var(--color-border);
-  }
-  .mat-mdc-tab .mdc-tab__text-label {
-    color: var(--color-fg);
-    font-weight: 600;
-  }
-  .mat-mdc-tab.mdc-tab--active .mdc-tab__text-label {
-    color: var(--color-accent);
-  }
-  .mat-mdc-tab-indicator__content--underline {
-    border-color: var(--color-accent) !important;
-  }
+/* Basic typography baseline */
+.mat-typography, body {
+  font-family: Roboto, "Helvetica Neue", Arial, sans-serif;
 }
+
+/* Small set of color tokens to align with our dark theme */
+.mat-app-background, .mat-toolbar, .mat-sidenav {
+  background: var(--bg-100) !important;
+  color: #e0e0e0 !important;
+}
+
+.mat-card, .panel-card, .detail-card {
+  background: var(--bg-200) !important;
+  color: #e0e0e0 !important;
+}
+
+.mat-button, .mat-icon-button, button.mat-button {
+  color: var(--muted);
+}
+
+.mat-form-field-appearance-outline .mat-form-field-outline {
+  stroke: rgba(255,255,255,0.06);
+}
+
+/* Keep ripple subtle */
+.mat-ripple-element { opacity: 0.06 !important; }
+
+/* Minimal scrollbar styling for webkit */
+::-webkit-scrollbar { height: 8px; width: 8px; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.04); border-radius: 6px; }
+
+/* End of minimal theme */
+

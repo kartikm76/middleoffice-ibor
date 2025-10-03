@@ -1,23 +1,36 @@
-<div>
-  <label>Title <input #titleBox [value]="title()" (input)="title.set(titleBox.value)" /></label>
-</div>
-<div>
-  <label>Author <input #authorBox [value]="author()" (input)="author.set(authorBox.value)" /></label>
-</div>
-<div>
-  <label>Text <br/>
-    <textarea #textBox rows="4" [value]="text()" (input)="text.set(textBox.value)"></textarea>
-  </label>
-</div>
-<div>
-  <label>Tickers (comma) <input #tickersBox [value]="tickers()" (input)="tickers.set(tickersBox.value)" /></label>
-</div>
-<div>
-  <label>Portfolios (comma) <input #portfoliosBox [value]="portfolios()" (input)="portfolios.set(portfoliosBox.value)" /></label>
-</div>
+<form class="notes-form" (ngSubmit)="submit()">
+  <mat-form-field appearance="outline" class="notes-field">
+    <mat-label>Title</mat-label>
+    <input matInput [(ngModel)]="titleValue" name="title" />
+  </mat-form-field>
 
-<button (click)="submit()" [disabled]="loading()">Ingest</button>
+  <mat-form-field appearance="outline" class="notes-field">
+    <mat-label>Author</mat-label>
+    <input matInput [(ngModel)]="authorValue" name="author" />
+  </mat-form-field>
 
-<p *ngIf="loading()">Submitting…</p>
-<p *ngIf="error()">Error: {{ error() }}</p>
-<pre *ngIf="result()">{{ result() | json }}</pre>
+  <mat-form-field appearance="outline" class="notes-field">
+    <mat-label>Text</mat-label>
+    <textarea matInput rows="4" [(ngModel)]="textValue" name="text"></textarea>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="notes-field">
+    <mat-label>Tickers (comma)</mat-label>
+    <input matInput [(ngModel)]="tickersValue" name="tickers" />
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="notes-field">
+    <mat-label>Portfolios (comma)</mat-label>
+    <input matInput [(ngModel)]="portfoliosValue" name="portfolios" />
+  </mat-form-field>
+
+  <div class="notes-actions">
+    <button mat-raised-button color="accent" type="submit" [disabled]="loading()">Ingest</button>
+  </div>
+
+  <div class="notes-feedback">
+    <mat-progress-bar *ngIf="loading()" mode="indeterminate"></mat-progress-bar>
+    <div *ngIf="error()" class="notes-error">Error: {{ error() }}</div>
+    <div *ngIf="result()" class="notes-hint">Ingested successfully.</div>
+  </div>
+</form>

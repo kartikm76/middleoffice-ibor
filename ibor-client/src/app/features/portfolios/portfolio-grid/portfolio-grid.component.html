@@ -1,43 +1,33 @@
-<div class="toolbar">
-  <input #searchBox class="search" placeholder="Search…" (input)="onSearch(searchBox.value)" />
-</div>
+<mat-card class="panel-card mat-elevation-z2">
+  <mat-card-header class="panel-header">
+    <div class="header-row">
+      <div class="header-right">
+        <!-- Search Bar -->
+        <mat-form-field appearance="outline" class="search-field">
+          <mat-label>Search</mat-label>
+          <input matInput [ngModel]="searchText" (ngModelChange)="onSearch($event)" />
+          <button mat-icon-button matSuffix *ngIf="searchText" (click)="onSearch('')">
+            <mat-icon>close</mat-icon>
+          </button>
+        </mat-form-field>
+      </div>
+    </div>
+  </mat-card-header>
 
-<table mat-table [dataSource]="data()" class="mat-elevation-z1 portfolio-table">
-
-  <!-- Code -->
-  <ng-container matColumnDef="code">
-    <th mat-header-cell *matHeaderCellDef> Code </th>
-    <td mat-cell *matCellDef="let r" [class.active]="r.code===state.selectedPortfolio()" (click)="select(r.code)">
-      <a>{{ r.code }}</a>
-    </td>
-  </ng-container>
-
-  <!-- Name -->
-  <ng-container matColumnDef="name">
-    <th mat-header-cell *matHeaderCellDef> Name </th>
-    <td mat-cell *matCellDef="let r">{{ r.name }}</td>
-  </ng-container>
-
-  <!-- MV -->
-  <ng-container matColumnDef="mv">
-    <th mat-header-cell *matHeaderCellDef> MV </th>
-    <td mat-cell *matCellDef="let r">{{ r.mv | number:'1.0-0' }}</td>
-  </ng-container>
-
-  <!-- TWRR -->
-  <ng-container matColumnDef="twrr">
-    <th mat-header-cell *matHeaderCellDef> TWRR % </th>
-    <td mat-cell *matCellDef="let r">{{ r.twrr | number:'1.2-2' }}</td>
-  </ng-container>
-
-  <!-- Benchmark -->
-  <ng-container matColumnDef="benchmark">
-    <th mat-header-cell *matHeaderCellDef> Benchmark </th>
-    <td mat-cell *matCellDef="let r">{{ r.benchmark }}</td>
-  </ng-container>
-
-  <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-  <tr mat-row *matRowDef="let row; columns: displayedColumns;"
-      [class.selected]="row.code===state.selectedPortfolio()" (click)="select(row.code)">
-  </tr>
-</table>
+  <mat-card-content>
+    <div class="grid-wrapper">
+      <ag-grid-angular class="ag-theme-alpine"
+        style="width:100%;height:100%;display:block;"
+        [rowData]="rowData"
+        [columnDefs]="columnDefs"
+        [defaultColDef]="defaultColDef"
+        [rowSelection]="rowSelection"
+        [rowHeight]="42"
+        [animateRows]="false"
+        (gridReady)="onGridReady($event)"
+        (selectionChanged)="onSelectionChanged($event)"
+      >
+      </ag-grid-angular>
+    </div>
+  </mat-card-content>
+</mat-card>

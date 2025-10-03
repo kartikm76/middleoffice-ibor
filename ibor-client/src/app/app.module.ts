@@ -3,7 +3,6 @@ import { BrowserModule } from '@angular/platform-browser';
 import { AppRoutingModule } from './app-routing.module';
 import { HttpClientModule} from "@angular/common/http";
 import { AppComponent } from './app.component';
-import {PortfolioGridComponent} from "./features/portfolios/portfolio-grid/portfolio-grid.component";
 
 @NgModule({
   declarations: [
@@ -12,8 +11,7 @@ import {PortfolioGridComponent} from "./features/portfolios/portfolio-grid/portf
     imports: [
         BrowserModule,
         AppRoutingModule,
-        HttpClientModule,
-        PortfolioGridComponent
+        HttpClientModule
     ],
   providers: [],
   bootstrap: [AppComponent]
