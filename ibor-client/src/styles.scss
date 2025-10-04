@@ -212,3 +212,7 @@ tr.mat-row:hover:not(.selected) td { background: var(--row-hover); transition: b
 .dark-theme .mat-mdc-form-field .mdc-notched-outline__leading,
 .dark-theme .mat-mdc-form-field .mdc-notched-outline__notch,
 .dark-theme .mat-mdc-form-field .mdc-notched-outline__trailing { border-color: var(--border) !important; }
+
+/* Ensure floating labels are readable in both themes */
+.dark-theme .mat-mdc-form-field .mdc-floating-label--float-above,
+.light-theme .mat-mdc-form-field .mdc-floating-label--float-above { color: var(--muted) !important; }
