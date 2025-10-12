@@ -1,18 +1,15 @@
 services:
-  db:
-    build:
-      context: ./docker/db
-    container_name: ibor_db
+  postgres:
+    image: pgvector/pgvector:pg16
     environment:
-      POSTGRES_DB: ibordb
-      POSTGRES_USER: ibor_user
-      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: ibor
+      POSTGRES_USER: ibor
+      POSTGRES_PASSWORD: ibor
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d
+      - ./db/data:/data
     ports:
       - "5432:5432"
-    volumes:
-      - ./docker/init:/docker-entrypoint-initdb.d
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ibor_user -d ibordb"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
+volumes:
+  pgdata:

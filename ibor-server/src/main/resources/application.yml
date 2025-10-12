@@ -2,9 +2,9 @@ server:
   port: 8080
 spring:
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/ibordb}
-    username: ${DB_USER:ibor_user}
-    password: ${DB_PASSWORD:secret}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/ibor}
+    username: ${DB_USER:ibor}
+    password: ${DB_PASSWORD:ibor}
   jpa:
     hibernate:
       ddl-auto: none   # keep schema from SQL; or "validate"
