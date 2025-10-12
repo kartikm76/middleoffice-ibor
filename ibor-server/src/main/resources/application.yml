@@ -5,6 +5,8 @@ spring:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/ibor}
     username: ${DB_USER:ibor}
     password: ${DB_PASSWORD:ibor}
+  jooq:
+    sql-dialect: POSTGRES
   jpa:
     hibernate:
       ddl-auto: none   # keep schema from SQL; or "validate"
