@@ -1,0 +1,35 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:ibortestdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: sa
+
+  jpa:
+    hibernate:
+      ddl-auto: none          # avoid generating PostgreSQL DDL against H2
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    properties:
+      hibernate:
+        format_sql: true
+        show_sql: false
+        hbm2ddl.auto: none
+
+  jooq:
+    sql-dialect: POSTGRES
+
+  liquibase:
+    enabled: false   # disable if you’re not using Liquibase migrations
+
+  flyway:
+    enabled: false   # disable if you’re not using Flyway migrations
+
+logging:
+  level:
+    root: WARN
+    org.springframework.test.context: INFO
+    org.springframework.jdbc.core: INFO
+    com.kmakker.ibor: DEBUG
+
+server:
+  port: 0  # random ephemeral port for integration tests

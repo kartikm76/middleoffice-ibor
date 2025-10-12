@@ -4,3 +4,6 @@
 ```bash
 cd docker
 docker compose up -d
+
+
+/middleoffice-ibor/ibor-server $ mvn -f pom.xml -Pcodegen -DskipTests generate-sources
