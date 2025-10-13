@@ -1,0 +1,3 @@
+instrument_code,ticker,cusip,isin,sedol,exchange_country,sector,industry_group,shares_outstanding,dividend_yield,dividend_currency,dividend_frequency,fiscal_year_end,listing_date,delisting_date,source_system,source_ref,ingest_batch_id
+EQ-IBM,IBM,459200101,US4592001014,2005973,US,Information Technology,IT Services,910000000,0.0150,USD,QUARTERLY,2024-12-31,1915-11-11,,SEED,EQ001,B1
+EQ-AAPL,AAPL,037833100,US0378331005,2046251,US,Information Technology,Consumer Electronics,15600000000,0.0050,USD,QUARTERLY,2024-09-30,1980-12-12,,SEED,EQ002,B1

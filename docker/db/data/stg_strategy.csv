@@ -1,0 +1,3 @@
+strategy_code,strategy_name,strategy_category,source_system,source_ref,ingest_batch_id
+STRAT-ALPHA,Alpha Strategy,LongOnly,SEED,ST001,B1
+STRAT-BETA,Beta Strategy,Macro,SEED,ST002,B1

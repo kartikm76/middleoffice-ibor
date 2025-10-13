@@ -1,0 +1,5 @@
+instrument_code,price_source_code,price_ts,price_type,price,currency_code,is_eod_flag,source_system,source_ref,ingest_batch_id
+EQ-IBM,BBG,2025-01-02T16:00:00Z,CLOSE,175.25,USD,true,SEED,PX001,B1
+EQ-AAPL,BBG,2025-01-02T16:00:00Z,CLOSE,198.12,USD,true,SEED,PX002,B1
+INDEX-SPX,BBG,2025-01-02T16:00:00Z,CLOSE,5200.55,USD,true,SEED,PX003,B1
+FUT-ESZ5,RFT,2025-02-03T15:45:00Z,MID,5205.25,USD,false,SEED,PX004,B1

@@ -1,0 +1,2 @@
+account_code,account_name,region,entitlement_group,valid_from,valid_to,status,source_system,source_ref,ingest_batch_id
+ACCT-PRIME,Prime Brokerage Account,NA,EG-ALPHA,2025-01-01,,ACTIVE,SEED,AC001,B1

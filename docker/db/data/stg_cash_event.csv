@@ -1,0 +1,2 @@
+portfolio_code,event_date,amount,currency_code,event_type,notes,source_system,source_ref,ingest_batch_id
+P-ALPHA,2025-02-01,150.00,USD,DIVIDEND,IBM dividend,SEED,CE001,B1

@@ -1,0 +1,2 @@
+instrument_code,contract_code,underlying_symbol,contract_size,tick_size,tick_value,quote_currency,delivery_month,expiry_date,first_notice_date,last_trading_date,settlement_type,exchange_code,source_system,source_ref,ingest_batch_id
+FUT-ESZ5,ESZ5,SPX,50,0.25,12.5,USD,DEC-2025,2025-12-19,2025-11-20,2025-12-19,CASH,XNAS,SEED,FU001,B1

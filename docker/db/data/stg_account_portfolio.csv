@@ -1,0 +1,2 @@
+account_code,portfolio_code,valid_from,valid_to,source_system,source_ref,ingest_batch_id
+ACCT-PRIME,P-ALPHA,2025-01-01,9999-12-31,SEED,APREL001,B1

@@ -1,0 +1,3 @@
+currency_code,rate_date,rate,source_system,source_ref,ingest_batch_id
+EUR,2025-01-02,1.1000,SEED,FX001,B1
+GBP,2025-01-02,1.2600,SEED,FX002,B1

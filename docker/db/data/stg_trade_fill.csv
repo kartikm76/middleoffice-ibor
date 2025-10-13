@@ -1,0 +1,4 @@
+execution_id,trade_code,account_code,instrument_code,trade_date,quantity,price,gross_amount,net_amount,broker_code,counterparty_code,source_system,source_ref,ingest_batch_id
+EXEC-001,T-0001,ACCT-PRIME,EQ-IBM,2025-01-03,100,170.00,17000.00,16990.00,BRK-ALPHA,CP-OMEGA,SEED,TR001,B1
+EXEC-002,T-0002,ACCT-PRIME,EQ-AAPL,2025-01-03,50,195.00,9750.00,9740.00,BRK-ALPHA,CP-OMEGA,SEED,TR002,B1
+EXEC-003,T-0003,ACCT-PRIME,FUT-ESZ5,2025-02-04,1,5200.00,260000.00,259990.00,BRK-ALPHA,CP-OMEGA,SEED,TR003,B1

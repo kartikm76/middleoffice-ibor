@@ -1,0 +1,4 @@
+currency_code,currency_name,minor_unit,source_system,source_ref,ingest_batch_id
+USD,US Dollar,2,SEED,CUR001,B1
+EUR,Euro,2,SEED,CUR002,B1
+GBP,Pound Sterling,2,SEED,CUR003,B1
