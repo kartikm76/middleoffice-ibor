@@ -17,7 +17,11 @@ public class JodiPositionsRepository {
         this.dslContext = dslContext;
     }
 
-    public List<PositionDTO> findPositions(LocalDate asOf, String portfolioCode, int page, int size) {
+    public List<PositionDTO> findPositions(LocalDate asOf, String portfolioCode, Integer page, Integer size) {
+        int p = (page == null || page < 1) ? 1 : page;
+        int s = (size == null || size <= 0) ? 50 : size;
+        int offset = Math.max(0, (p - 1) * s);
+
         final String sql = """
         WITH
             p AS (
@@ -95,7 +99,7 @@ public class JodiPositionsRepository {
             LEFT JOIN mult       m  ON m.instrument_vid  = cur.instrument_vid
             WHERE cur.net_qty IS NOT NULL
             ORDER BY i.instrument_code
-            LIMIT ? OFFSET ?;                      -- 10, 11
+            LIMIT ? OFFSET ?;
         """;
 
         // Bind each '?' in the same order:
@@ -112,7 +116,7 @@ public class JodiPositionsRepository {
                         asOf,            // 8
                         asOf,            // 9
                         size,            // 10
-                        (page - 1) * size // 11
+                        offset           // 11
                 )
                 .fetch(this::toDto);
     }

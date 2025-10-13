@@ -20,11 +20,23 @@
         <jooq.version>3.18.7</jooq.version>
         <postgres.version>42.7.4</postgres.version>
         <lombok.version>1.18.34</lombok.version>
-        <mockito.version>5.12.0</mockito.version>
     </properties>
 
+    <!-- Keep Testcontainers modules in sync via BOM -->
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers-bom</artifactId>
+                <version>1.20.4</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <dependencies>
-        <!-- Spring Boot Core -->
+        <!-- Spring Boot -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
@@ -42,24 +54,28 @@
             <artifactId>spring-boot-starter-jooq</artifactId>
         </dependency>
 
-        <!-- Database -->
+        <!-- DB -->
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <version>${postgres.version}</version>
         </dependency>
+        <!-- Remove direct jOOQ dependency; starter manages it
         <dependency>
-            <groupId>org.jooq</groupId>
-            <artifactId>jooq</artifactId>
-            <version>${jooq.version}</version>
+          <groupId>org.jooq</groupId>
+          <artifactId>jooq</artifactId>
+          <version>${jooq.version}</version>
         </dependency>
+        -->
+
+        <!-- H2 only for unit tests (optional; can remove if not used) -->
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
-            <scope>runtime</scope>
+            <scope>test</scope>
         </dependency>
 
-        <!-- API Docs -->
+        <!-- OpenAPI -->
         <dependency>
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
@@ -80,7 +96,7 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- LangChain + OpenAI -->
+        <!-- LangChain/OpenAI -->
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j</artifactId>
@@ -92,7 +108,7 @@
             <version>1.4.0</version>
         </dependency>
 
-        <!-- Monitoring -->
+        <!-- Actuator -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
@@ -104,17 +120,23 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <!-- Testcontainers (versions come from BOM above) -->
         <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-core</artifactId>
-            <version>${mockito.version}</version>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>postgresql</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
 
     <build>
         <plugins>
-            <!-- Lombok Annotation Processing -->
+            <!-- Lombok annotation processing -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -153,7 +175,7 @@
         </plugins>
     </build>
 
-    <!-- jOOQ codegen -->
+    <!-- jOOQ codegen profile -->
     <profiles>
         <profile>
             <id>codegen</id>
@@ -167,9 +189,7 @@
                             <execution>
                                 <id>generate-ibor-schema</id>
                                 <phase>generate-sources</phase>
-                                <goals>
-                                    <goal>generate</goal>
-                                </goals>
+                                <goals><goal>generate</goal></goals>
                                 <configuration>
                                     <jdbc>
                                         <driver>org.postgresql.Driver</driver>

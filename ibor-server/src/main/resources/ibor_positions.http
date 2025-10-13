@@ -1,0 +1,126 @@
+# @name env
+@host = http://localhost
+@port = 8080
+@base = {{host}}:{{port}}
+
+###
+# Health check (optional)
+GET {{base}}/actuator/health
+
+> {% client.test("health is UP", function() {
+        client.assert(response.status === 200, "status not 200");
+        client.assert(response.body && response.body.status === "UP", "not UP");
+    }); %}
+
+###
+# 1) Portfolio positions (default page=1 size=50)
+# Expect: 200, x-contract-version: 1, JSON array with positions
+GET {{base}}/api/positions?portfolioCode=P-ALPHA&asOf=2025-01-03
+
+> {% client.test("portfolio positions ok", function() {
+        client.assert(response.status === 200, "status not 200");
+        client.assert(response.headers.valueOf("x-contract-version") === "1", "missing/incorrect contract header");
+        client.assert(Array.isArray(response.body), "body should be array");
+    }); %}
+
+###
+# 1.a) Portfolio positions with paging
+GET {{base}}/api/positions?portfolioCode=P-ALPHA&asOf=2025-01-03&page=1&size=10
+
+> {% client.test("paged portfolio positions ok", function() {
+        client.assert(response.status === 200, "status not 200");
+        client.assert(Array.isArray(response.body), "body should be array");
+    }); %}
+
+###
+# 1.b) Another page
+GET {{base}}/api/positions?portfolioCode=P-ALPHA&asOf=2025-01-03&page=2&size=10
+
+> {% client.test("second page ok", function() {
+        client.assert(response.status === 200, "status not 200");
+    }); %}
+
+###
+# 1.c) Edge: missing portfolioCode (should be 400 from controller validation)
+GET {{base}}/api/positions?asOf=2025-01-03
+
+> {% client.test("missing portfolioCode yields 4xx", function() {
+        client.assert(response.status >= 400 && response.status < 500, "expected client error");
+    }); %}
+
+###
+# 1.d) Edge: invalid asOf (should be 400)
+GET {{base}}/api/positions?portfolioCode=P-ALPHA&asOf=bad-date
+
+> {% client.test("bad asOf yields 4xx", function() {
+        client.assert(response.status >= 400 && response.status < 500, "expected client error");
+    }); %}
+
+###
+# 2) Instrument-level drilldown (lotView NONE)
+# (Your working example)
+GET {{base}}/api/positions/P-ALPHA/EQ-IBM?asOf=2025-01-03&lotView=NONE
+
+> {% client.test("instrument drilldown NONE ok", function() {
+        client.assert(response.status === 200, "status not 200");
+        client.assert(response.headers.valueOf("x-contract-version") === "1", "missing/incorrect contract header");
+        client.assert(!!response.body, "body should exist");
+        client.assert(response.body.portfolioCode === "P-ALPHA", "portfolio mismatch");
+        client.assert(response.body.instrumentCode === "EQ-IBM" || response.body.instrumentCode === "IBM", "instrument code unexpected");
+    }); %}
+
+###
+# 2.a) Instrument-level drilldown (lotView FIFO)
+GET {{base}}/api/positions/P-ALPHA/EQ-IBM?asOf=2025-01-03&lotView=FIFO
+
+> {% client.test("instrument drilldown FIFO ok", function() {
+        client.assert(response.status === 200, "status not 200");
+    }); %}
+
+###
+# 2.b) Instrument-level drilldown (lotView LIFO)
+GET {{base}}/api/positions/P-ALPHA/EQ-IBM?asOf=2025-01-03&lotView=LIFO
+
+> {% client.test("instrument drilldown LIFO ok", function() {
+        client.assert(response.status === 200, "status not 200");
+    }); %}
+
+###
+# 2.c) Instrument not held (should return empty / zeros but 200)
+GET {{base}}/api/positions/P-ALPHA/NO-SUCH-INSTR?asOf=2025-01-03&lotView=NONE
+
+> {% client.test("unknown instrument handled", function() {
+        client.assert(response.status === 200, "status not 200");
+    }); %}
+
+###
+# 2.d) Before any trades (early asOf)
+GET {{base}}/api/positions/P-ALPHA/EQ-IBM?asOf=2020-01-01&lotView=NONE
+
+> {% client.test("early asOf returns empty or zero netQty", function() {
+        client.assert(response.status === 200, "status not 200");
+    }); %}
+
+###
+# 3) Smoke: another portfolio date
+GET {{base}}/api/positions?portfolioCode=P-ALPHA&asOf=2025-01-02
+
+> {% client.test("smoke other date ok", function() {
+        client.assert(response.status === 200, "status not 200");
+    }); %}
+
+###
+# 4) Contract header presence on collection
+GET {{base}}/api/positions?portfolioCode=P-ALPHA&asOf=2025-01-03
+
+> {% client.test("contract header present", function() {
+        client.assert(response.headers.valueOf("x-contract-version") === "1", "missing/incorrect contract header");
+    }); %}
+
+###
+# 5) Large page size capped (controller should cap to MAX_PAGE_SIZE)
+GET {{base}}/api/positions?portfolioCode=P-ALPHA&asOf=2025-01-03&size=10000
+
+> {% client.test("large page size request still ok", function() {
+        client.assert(response.status === 200, "status not 200");
+    }); %}
