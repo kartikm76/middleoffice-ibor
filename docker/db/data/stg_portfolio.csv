@@ -1,0 +1,2 @@
+portfolio_code,portfolio_name,region,entitlement_group,valid_from,valid_to,status,source_system,source_ref,ingest_batch_id
+P-ALPHA,Alpha Portfolio,NA,EG-ALPHA,2025-01-01,,ACTIVE,SEED,PF001,B1

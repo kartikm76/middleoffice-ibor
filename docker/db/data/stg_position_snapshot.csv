@@ -1,0 +1,4 @@
+portfolio_code,instrument_code,position_date,quantity,source_system,source_ref,ingest_batch_id
+P-ALPHA,EQ-IBM,2025-01-03,100,SEED,POS001,B1
+P-ALPHA,EQ-AAPL,2025-01-03,50,SEED,POS002,B1
+P-ALPHA,FUT-ESZ5,2025-02-04,1,SEED,POS003,B1

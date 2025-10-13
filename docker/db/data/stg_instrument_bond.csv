@@ -1,0 +1,2 @@
+instrument_code,isin,cusip,issuer_name,coupon_rate,coupon_type,coupon_frequency,day_count_convention,maturity_date,issue_date,dated_date,first_coupon_date,last_coupon_date,face_value,currency_code,country_of_issue,call_type,call_price,source_system,source_ref,ingest_batch_id
+BOND-UST10,US91282CAV37,91282CAV3,United States Treasury,0.0450,FIXED,SEMIANNUAL,30/360,2035-11-15,2025-11-15,2025-11-15,2026-05-15,2035-11-15,1000,USD,US,,,SEED,BD001,B1

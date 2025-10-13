@@ -1,0 +1,2 @@
+portfolio_code,instrument_code,effective_date,quantity_delta,reason,source_system,source_ref,ingest_batch_id
+P-ALPHA,EQ-IBM,2025-01-10,-10,CORP_ACTION,SEED,ADJ001,B1

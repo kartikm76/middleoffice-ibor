@@ -1,0 +1,4 @@
+cal_date,is_business_day,market,source_system,source_ref,ingest_batch_id
+2025-01-02,true,NYSE,SEED,CAL001,B1
+2025-01-03,true,NYSE,SEED,CAL002,B1
+2025-01-04,false,NYSE,SEED,CAL003,B1

@@ -1,0 +1,3 @@
+price_source_code,price_source_name,source_system,source_ref,ingest_batch_id
+BBG,Bloomberg,SEED,PS001,B1
+RFT,Refinitiv,SEED,PS002,B1
