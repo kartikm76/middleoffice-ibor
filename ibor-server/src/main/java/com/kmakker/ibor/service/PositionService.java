@@ -9,7 +9,7 @@ import java.util.List;
 
 @Service
 public class PositionService {
-    private static final int MAX_PAGE_SIZE = 500;
+    private static final int MAX_PAGE_SIZE = 50;
     private static final int DEFAULT_PAGE_SIZE = 100;
 
     private final JodiPositionsRepository positionsRepository;
