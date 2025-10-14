@@ -87,9 +87,9 @@ Legend: [PK] primary key, [FK] foreign key, (SCD2) slowly-changing dimension typ
 ```
 Reference dimensions (non-SCD)
 ┌────────────────────────┐      ┌────────────────────────┐      ┌────────────────────────────┐      ┌────────────────────────┐
-│ dim_currency          │      │ dim_exchange          │      │ dim_price_source           │      │ dim_strategy          │
-│ [PK] currency_vid     │      │ [PK] exchange_vid     │      │ [PK] price_source_vid      │      │ [PK] strategy_vid     │
-│     currency_code UQ  │      │     exchange_code UQ  │      │     price_source_code UQ   │      │     strategy_code UQ  │
+│ dim_currency           |      │ dim_exchange           │      │ dim_price_source           │      │ dim_strategy           │
+│ [PK] currency_vid      │      │ [PK] exchange_vid      │      │ [PK] price_source_vid      │      │ [PK] strategy_vid      │
+│     currency_code UQ   │      │     exchange_code UQ   │      │     price_source_code UQ   │      │     strategy_code UQ   │
 └────────────────────────┘      └────────────────────────┘      └────────────────────────────┘      └────────────────────────┘
 
 Core dimensions (SCD2)
@@ -112,39 +112,39 @@ Core dimensions (SCD2)
 
 Bridges (SCD2)
 ┌─────────────────────────────────────┐      ┌─────────────────────────────────────┐
-│ dim_portfolio_strategy (SCD2)      │      │ dim_account_portfolio (SCD2)        │
-│ [PK] portfolio_strategy_vid        │      │ [PK] account_portfolio_vid          │
-│     portfolio_vid [FK→portfolio]   │      │     account_vid [FK→account]        │
-│     strategy_vid  [FK→strategy]    │      │     portfolio_vid [FK→portfolio]    │
-│     valid_from..is_current         │      │     valid_from..is_current          │
+│ dim_portfolio_strategy (SCD2)       │      │ dim_account_portfolio (SCD2)        │
+│ [PK] portfolio_strategy_vid         │      │ [PK] account_portfolio_vid          │
+│     portfolio_vid [FK→portfolio]    │      │     account_vid [FK→account]        │
+│     strategy_vid  [FK→strategy]     │      │     portfolio_vid [FK→portfolio]    │
+│     valid_from..is_current          │      │     valid_from..is_current          │
 └─────────────────────────────────────┘      └─────────────────────────────────────┘
 
 Facts
 ┌──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-│ fact_price                                                                                                                    │
+│ fact_price                                                                                                                   │
 │ [PK] (instrument_vid, price_source_vid, price_ts)                                                                            │
-│     instrument_vid [FK→dim_instrument], price_source_vid [FK→dim_price_source], currency_code [FK→dim_currency]               │
+│     instrument_vid [FK→dim_instrument], price_source_vid [FK→dim_price_source], currency_code [FK→dim_currency]              │
 └──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────┐    ┌─────────────────────────────────────────────┐
-│ fact_fx_rate                                 │    │ fact_trade                                   │
-│ [PK] (from_currency_code, to_currency_code,  │    │ [PK] execution_id                            │
-│      rate_date)                              │    │     account_vid [FK→dim_account]             │
-│     from/to currency_code [FK→dim_currency]  │    │     instrument_vid [FK→dim_instrument]       │
+│ fact_fx_rate                                 │    │ fact_trade                                  │
+│ [PK] (from_currency_code, to_currency_code,  │    │ [PK] execution_id                           │
+│      rate_date)                              │    │     account_vid [FK→dim_account]            │
+│     from/to currency_code [FK→dim_currency]  │    │     instrument_vid [FK→dim_instrument]      │
 └──────────────────────────────────────────────┘    └─────────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────────┐   ┌───────────────────────────────────────────────────────────┐
-│ fact_position_snapshot                                        │   │ fact_cash_event                                            │
+│ fact_position_snapshot                                       │   │ fact_cash_event                                           │
 │ [PK] (portfolio_vid, instrument_vid, position_date)          │   │ [PK] (portfolio_vid, event_date, amount)                  │
-│     portfolio_vid [FK→dim_portfolio]                          │   │     portfolio_vid [FK→dim_portfolio]                      │
-│     instrument_vid [FK→dim_instrument]                        │   │     currency_code [FK→dim_currency]                       │
+│     portfolio_vid [FK→dim_portfolio]                         │   │     portfolio_vid [FK→dim_portfolio]                      │
+│     instrument_vid [FK→dim_instrument]                       │   │     currency_code [FK→dim_currency]                       │
 └──────────────────────────────────────────────────────────────┘   └───────────────────────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────────┐      ┌────────────────────────────────────────────────────────┐
-│ fact_position_adjustment                                      │      │ fact_corporate_action_applied                          │
-│ [PK] position_adjustment_id                                   │      │ [PK] ca_applied_id                                      │
-│     portfolio_vid [FK→dim_portfolio]                           │      │     instrument_vid [FK→dim_instrument]                  │
-│     instrument_vid [FK→dim_instrument]                         │      │     currency_code [FK→dim_currency] (optional)          │
+│ fact_position_adjustment                                     │      │ fact_corporate_action_applied                          │
+│ [PK] position_adjustment_id                                  │      │ [PK] ca_applied_id                                     │
+│     portfolio_vid [FK→dim_portfolio]                         │      │     instrument_vid [FK→dim_instrument]                 │
+│     instrument_vid [FK→dim_instrument]                       │      │     currency_code [FK→dim_currency] (optional)         │
 └──────────────────────────────────────────────────────────────┘      └────────────────────────────────────────────────────────┘
 
 RAG (pgvector)
@@ -152,23 +152,23 @@ RAG (pgvector)
 │ rag_documents         │─────│         │
 │ [PK] document_id      │     │     N   │
 └───────────────────────┘       ▼
-                             ┌─────────────┐
-                             │ rag_chunks  │
-                             │ [PK] chunk_id
-                             │ document_id [FK]
-                             │ embedding vector
-                             └─────────────┘
+                             ┌────────────────────┐
+                             │ rag_chunks         │
+                             │ [PK] chunk_id      │
+                             │ document_id [FK]   │
+                             │ embedding vector   │
+                             └────────────────────┘
 ```
 
 ---
 
 ## High-level data and request flow
 ```
-┌───────────────┐     ┌───────────────┐     ┌────────────────┐     ┌─────────────────────┐
+┌───────────────┐     ┌───────────────┐     ┌─────────────────┐     ┌─────────────────────┐
 │ CSV/JSON      │ --> │ staging (stg) │ --> │ loaders (SQL)   │ --> │ curated (ibor.*)    │
 │ docker/db/... │     │ COPY via      │     │ ibor.run_all_*  │     │ dims, bridges,      │
 │               │     │ load_all.sh   │     │ SCD2 + facts    │     │ facts, rag_*        │
-└───────────────┘     └───────────────┘     └────────────────┘     └─────────────────────┘
+└───────────────┘     └───────────────┘     └─────────────────┘     └─────────────────────┘
                                  │                                        │
                                  │                                        ▼
                                  │                          ┌──────────────────────────────┐
@@ -223,11 +223,6 @@ You already have vector-ready tables and a Spring Boot server capable of hybrid 
 6) Observability
 - Log traces per request (SQL + vector search + LLM call)
 - Add evaluation sets for regression testing of Q&A
-
-For detailed wiring, class-by-class overview, and cURL examples, see:
-```
-ibor-server/README.md
-```
 
 ---
 
