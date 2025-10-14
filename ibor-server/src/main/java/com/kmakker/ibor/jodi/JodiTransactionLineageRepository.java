@@ -11,6 +11,25 @@ import java.sql.Date;
 import java.time.LocalDate;
 import java.util.List;
 
+/**
+ * Repository for transaction lineage and position detail lookups using jOOQ with plain SQL.
+ *
+ * <p>Key implementation notes:</p>
+ * <ul>
+ *   <li>All queries use a single <code>args</code> CTE to strongly type and bind input parameters
+ *       (<code>as_of</code>, <code>portfolio_code</code>, <code>instrument_code</code>). This keeps
+ *       the SQL readable and avoids repeating placeholders.</li>
+ *   <li>Temporal SCD2 joins: dimension tables (portfolio/instrument) are constrained to the
+ *       provided <code>as_of</code> window (<code>valid_from &lt;= as_of &amp;&amp; valid_to &gt;= as_of</code>).</li>
+ *   <li>Explicit JOINs only (no implicit comma joins) to ensure alias scope is unambiguous and
+ *       avoid errors such as “invalid reference to FROM-clause entry”.</li>
+ *   <li>Dates are bound as <code>java.sql.Date</code> and compared via <code>args.as_of</code> or
+ *       <code>cast(? as date)</code> to prevent PostgreSQL from mis-typing null/untyped values
+ *       (e.g., “null$8”).</li>
+ *   <li>Unioned result sets (trades + adjustments) return the exact same columns in the same order.</li>
+ *   <li>DEBUG logging can inline parameters for easier troubleshooting without executing string-built SQL.</li>
+ * </ul>
+ */
 @Slf4j
 @Repository
 public class JodiTransactionLineageRepository {
@@ -21,6 +40,12 @@ public class JodiTransactionLineageRepository {
         this.dslContext = dslContext;
     }
 
+    /**
+     * Fetch high-level position header for a (portfolioCode, instrumentCode) as-of a date.
+     *
+     * <p>Returns a single row with net quantity, last price, market value, currency and basic
+     * instrument metadata resolved via SCD2 dimensions at the given as-of.</p>
+     */
     public PositionDetailDTO fetchHeader(LocalDate asOf, String portfolioCode, String instrumentCode) {
         String sql = """
                   WITH args AS (
@@ -113,6 +138,17 @@ public class JodiTransactionLineageRepository {
         );
     }
 
+    /**
+     * Fetch transaction lineage (trades and position adjustments) for a
+     * (portfolioCode, instrumentCode) pair up to the as-of timestamp.
+     *
+     * <p>The result is a time-ordered union of:
+     * <ul>
+     *   <li>Trades (BUY/SELL) joined through the SCD2 account→portfolio bridge at the trade date</li>
+     *   <li>Adjustments (ADJUST) applied up to the as-of date</li>
+     * </ul>
+     * Both sources project the same column list and are ordered by timestamp then source.</p>
+     */
     public List<TransactionDTO> fetchTransactions(LocalDate asOf, String portfolioCode, String instrumentCode) {
         String sql = """
                 WITH args AS (
@@ -206,7 +242,10 @@ public class JodiTransactionLineageRepository {
         ));
     }
 
-    // Debug helper: inline bound parameters into SQL for logging only
+    /**
+     * Debug helper: produces a best-effort SQL string with parameters inlined in place of '?'
+     * for log inspection only. Do not execute the returned string.
+     */
     private static String inlineParameters(String sql, Object[] params) {
         StringBuilder sb = new StringBuilder();
         int idx = 0;
@@ -221,6 +260,7 @@ public class JodiTransactionLineageRepository {
         return sb.toString();
     }
 
+    /** Formats a single bound parameter for {@link #inlineParameters(String, Object[])}. */
     private static String formatParam(Object v) {
         switch (v) {
             case null -> {

@@ -1,5 +1,6 @@
 package com.kmakker.ibor.dto;
 
+// it may have to be removed
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 

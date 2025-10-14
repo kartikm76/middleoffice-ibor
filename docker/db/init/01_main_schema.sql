@@ -264,15 +264,19 @@ CREATE TABLE IF NOT EXISTS ibor.fact_price (
 CREATE INDEX IF NOT EXISTS idx_price_instr_eod_ts ON ibor.fact_price (instrument_vid, is_eod_flag, price_ts DESC);
 
 -- FX rates vs base (e.g., USD)
-CREATE TABLE IF NOT EXISTS ibor.fact_fx_rate (
-  currency_code   CHAR(3) NOT NULL REFERENCES ibor.dim_currency(currency_code),
-  rate_date       DATE NOT NULL,
-  rate            NUMERIC(28,10) NOT NULL,
-  created_at      TIMESTAMP NOT NULL DEFAULT now(),
-  updated_at      TIMESTAMP NOT NULL DEFAULT now(),
-  PRIMARY KEY (currency_code, rate_date)
+CREATE TABLE ibor.fact_fx_rate (
+   from_currency_code CHAR(3) NOT NULL REFERENCES ibor.dim_currency(currency_code),
+   to_currency_code   CHAR(3) NOT NULL REFERENCES ibor.dim_currency(currency_code),
+   rate_date          DATE NOT NULL,
+   rate               NUMERIC(28,10) NOT NULL,
+   source_system      TEXT,
+   source_ref         TEXT,
+   ingest_batch_id    TEXT,
+   created_at         TIMESTAMP NOT NULL DEFAULT now(),
+   updated_at         TIMESTAMP NOT NULL DEFAULT now(),
+   PRIMARY KEY (from_currency_code, to_currency_code, rate_date)
 );
-CREATE INDEX IF NOT EXISTS idx_fx_rate_date ON ibor.fact_fx_rate (rate_date);
+CREATE INDEX IF NOT EXISTS idx_fx_rate_pair_date ON ibor.fact_fx_rate (from_currency_code, to_currency_code, rate_date DESC);
 
 -- Executed fills (immutable grain = execution_id)
 CREATE TABLE IF NOT EXISTS ibor.fact_trade (

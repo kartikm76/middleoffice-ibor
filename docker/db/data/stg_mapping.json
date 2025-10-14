@@ -1,0 +1,98 @@
+{
+  "staging": {
+    "stg_currency.csv": {
+      "table": "stg.currency",
+      "columns": ["currency_code","currency_name","minor_unit","source_system","source_ref","ingest_batch_id"]
+    },
+    "stg_exchange.csv": {
+      "table": "stg.exchange",
+      "columns": ["exchange_code","exchange_name","source_system","source_ref","ingest_batch_id"]
+    },
+    "stg_price_source.csv": {
+      "table": "stg.price_source",
+      "columns": ["price_source_code","price_source_name","source_system","source_ref","ingest_batch_id"]
+    },
+    "stg_strategy.csv": {
+      "table": "stg.strategy",
+      "columns": ["strategy_code","strategy_name","strategy_category","source_system","source_ref","ingest_batch_id"]
+    },
+
+    "stg_portfolio.csv": {
+      "table": "stg.portfolio",
+      "columns": ["portfolio_code","portfolio_name","region","entitlement_group","valid_from","valid_to","status","source_system","source_ref","ingest_batch_id"]
+    },
+    "stg_account.csv": {
+      "table": "stg.account",
+      "columns": ["account_code","account_name","region","entitlement_group","valid_from","valid_to","status","source_system","source_ref","ingest_batch_id"]
+    },
+    "stg_account_portfolio.csv": {
+      "table": "stg.account_portfolio",
+      "columns": ["account_code","portfolio_code","valid_from","valid_to","source_system","source_ref","ingest_batch_id"]
+    },
+
+    "stg_instrument.csv": {
+      "table": "stg.instrument",
+      "columns": ["instrument_code","instrument_type","instrument_name","exchange_code","currency_code","status","valid_from","valid_to","source_system","source_ref","ingest_batch_id"]
+    },
+    "stg_instrument_equity.csv": {
+      "table": "stg.instrument_equity",
+      "columns": ["instrument_code","ticker","cusip","isin","sedol","exchange_country","sector","industry_group","shares_outstanding","dividend_yield","dividend_currency","dividend_frequency","fiscal_year_end","listing_date","delisting_date","source_system","source_ref","ingest_batch_id"]
+    },
+    "stg_instrument_bond.csv": {
+      "table": "stg.instrument_bond",
+      "columns": ["instrument_code","isin","cusip","issuer_name","coupon_rate","coupon_type","coupon_frequency","day_count_convention","maturity_date","issue_date","dated_date","first_coupon_date","last_coupon_date","face_value","currency_code","country_of_issue","call_type","call_price","source_system","source_ref","ingest_batch_id"]
+    },
+    "stg_instrument_futures.csv": {
+      "table": "stg.instrument_futures",
+      "columns": ["instrument_code","contract_code","underlying_symbol","contract_size","tick_size","tick_value","quote_currency","delivery_month","expiry_date","first_notice_date","last_trading_date","settlement_type","exchange_code","source_system","source_ref","ingest_batch_id"]
+    },
+    "stg_instrument_options.csv": {
+      "table": "stg.instrument_options",
+      "columns": ["instrument_code","option_symbol","underlying_symbol","option_type","strike_price","expiry_date","multiplier","premium_currency","exercise_style","settlement_type","exchange_code","source_system","source_ref","ingest_batch_id"]
+    },
+
+    "stg_price.csv": {
+      "table": "stg.price",
+      "columns": ["instrument_code","price_source_code","price_ts","price_type","price","currency_code","is_eod_flag","source_system","source_ref","ingest_batch_id"]
+    },
+
+    "stg_fx_rate.csv": {
+      "table": "stg.fx_rate",
+      "columns": ["from_currency_code","to_currency_code","rate_date","rate","source_system","source_ref","ingest_batch_id"]
+    },
+
+    "stg_trade_fill.csv": {
+      "table": "stg.trade_fill",
+      "columns": ["execution_id","trade_code","account_code","instrument_code","trade_date","quantity","price","gross_amount","net_amount","broker_code","counterparty_code","source_system","source_ref","ingest_batch_id"]
+    },
+    "stg_position_snapshot.csv": {
+      "table": "stg.position_snapshot",
+      "columns": ["portfolio_code","instrument_code","position_date","quantity","source_system","source_ref","ingest_batch_id"]
+    },
+    "stg_cash_event.csv": {
+      "table": "stg.cash_event",
+      "columns": ["portfolio_code","event_date","amount","currency_code","event_type","notes","source_system","source_ref","ingest_batch_id"]
+    },
+    "stg_position_adjustment.csv": {
+      "table": "stg.position_adjustment",
+      "columns": ["portfolio_code","instrument_code","effective_date","quantity_delta","reason","source_system","source_ref","ingest_batch_id"]
+    },
+
+    "stg_broker.csv": {
+      "table": "stg.broker",
+      "columns": ["broker_code","broker_name","source_system","source_ref","ingest_batch_id"]
+    },
+    "stg_counterparty.csv": {
+      "table": "stg.counterparty",
+      "columns": ["counterparty_code","counterparty_name","country","source_system","source_ref","ingest_batch_id"]
+    },
+    "stg_calendar.csv": {
+      "table": "stg.calendar",
+      "columns": ["cal_date","is_business_day","market","source_system","source_ref","ingest_batch_id"]
+    },
+    "stg_corporate_action_applied.csv": {
+      "table": "stg.corporate_action_applied",
+      "columns": ["instrument_code","action_code","ex_date","record_date","pay_date","factor","amount","currency_code","notes","source_system","source_ref","ingest_batch_id"]
+    }
+  }
+}

@@ -2,3 +2,41 @@ currency_code,currency_name,minor_unit,source_system,source_ref,ingest_batch_id
 USD,US Dollar,2,SEED,CUR001,B1
 EUR,Euro,2,SEED,CUR002,B1
 GBP,Pound Sterling,2,SEED,CUR003,B1
+JPY,Japanese Yen,0,SEED,CUR004,B1
+CHF,Swiss Franc,2,SEED,CUR005,B1
+AUD,Australian Dollar,2,SEED,CUR006,B1
+CAD,Canadian Dollar,2,SEED,CUR007,B1
+NZD,New Zealand Dollar,2,SEED,CUR008,B1
+SEK,Swedish Krona,2,SEED,CUR009,B1
+NOK,Norwegian Krone,2,SEED,CUR010,B1
+DKK,Danish Krone,2,SEED,CUR011,B1
+HKD,Hong Kong Dollar,2,SEED,CUR012,B1
+SGD,Singapore Dollar,2,SEED,CUR013,B1
+CNY,Chinese Yuan (Onshore),2,SEED,CUR014,B1
+CNH,Chinese Yuan (Offshore),2,SEED,CUR015,B1
+INR,Indian Rupee,2,SEED,CUR016,B1
+KRW,South Korean Won,0,SEED,CUR017,B1
+TWD,New Taiwan Dollar,2,SEED,CUR018,B1
+THB,Thai Baht,2,SEED,CUR019,B1
+MYR,Malaysian Ringgit,2,SEED,CUR020,B1
+IDR,Indonesian Rupiah,2,SEED,CUR021,B1
+PHP,Philippine Peso,2,SEED,CUR022,B1
+VND,Vietnamese Dong,0,SEED,CUR023,B1
+BRL,Brazilian Real,2,SEED,CUR024,B1
+MXN,Mexican Peso,2,SEED,CUR025,B1
+CLP,Chilean Peso,0,SEED,CUR026,B1
+COP,Colombian Peso,2,SEED,CUR027,B1
+ARS,Argentine Peso,2,SEED,CUR028,B1
+PEN,Peruvian Sol,2,SEED,CUR029,B1
+ZAR,South African Rand,2,SEED,CUR030,B1
+TRY,Turkish Lira,2,SEED,CUR031,B1
+RUB,Russian Ruble,2,SEED,CUR032,B1
+PLN,Polish Zloty,2,SEED,CUR033,B1
+HUF,Hungarian Forint,2,SEED,CUR034,B1
+CZK,Czech Koruna,2,SEED,CUR035,B1
+ILS,Israeli New Shekel,2,SEED,CUR036,B1
+AED,UAE Dirham,2,SEED,CUR037,B1
+SAR,Saudi Riyal,2,SEED,CUR038,B1
+QAR,Qatari Riyal,2,SEED,CUR039,B1
+KWD,Kuwaiti Dinar,3,SEED,CUR040,B1
+BHD,Bahraini Dinar,3,SEED,CUR041,B1
