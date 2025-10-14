@@ -462,22 +462,29 @@ END $$;
 -- Facts
 -- =========================
 CREATE OR REPLACE FUNCTION ibor.load_fx_rate_upsert()
-RETURNS BIGINT LANGUAGE plpgsql AS $$
-DECLARE c BIGINT;
+    RETURNS BIGINT LANGUAGE plpgsql AS $$
+DECLARE cnt BIGINT := 0;
 BEGIN
-  WITH up AS (
-    INSERT INTO ibor.fact_fx_rate(currency_code, rate_date, rate)
-    SELECT currency_code, rate_date, rate
-    FROM stg.fx_rate
-    ON CONFLICT (currency_code, rate_date) DO UPDATE
-      SET rate = EXCLUDED.rate,
-          updated_at = now()
-    RETURNING 1
-  ) SELECT COUNT(*) INTO c FROM up;
+    INSERT INTO ibor.fact_fx_rate (
+        from_currency_code, to_currency_code, rate_date, rate,
+        source_system, source_ref, ingest_batch_id
+    )
+    SELECT
+        s.from_currency_code, s.to_currency_code, s.rate_date, s.rate,
+        s.source_system, s.source_ref, s.ingest_batch_id
+    FROM stg.fx_rate s
+    ON CONFLICT (from_currency_code, to_currency_code, rate_date) DO UPDATE
+        SET rate = EXCLUDED.rate,
+            source_system = EXCLUDED.source_system,
+            source_ref = EXCLUDED.source_ref,
+            ingest_batch_id = EXCLUDED.ingest_batch_id,
+            updated_at = now();
 
-  DELETE FROM stg.fx_rate;
-  RETURN COALESCE(c,0);
-END $$;
+    GET DIAGNOSTICS cnt = ROW_COUNT;
+    DELETE FROM stg.fx_rate;
+    RETURN cnt;
+END;
+$$;
 
 CREATE OR REPLACE FUNCTION ibor.load_price_upsert()
 RETURNS BIGINT LANGUAGE plpgsql AS $$

@@ -35,3 +35,6 @@ management:
   health:
     db:
       enabled: true
+logging:
+  level:
+    com.kmakker.ibor.jodi: DEBUG

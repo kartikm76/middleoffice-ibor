@@ -89,6 +89,42 @@ RETURNS BIGINT LANGUAGE sql STABLE AS $$
   LIMIT 1
 $$;
 
+-- Pick direct pair at/before date
+CREATE OR REPLACE FUNCTION ibor.fn_pick_fx_direct(
+    p_from CHAR(3), p_to CHAR(3), p_at DATE
+) RETURNS NUMERIC LANGUAGE sql AS $$
+SELECT rate
+FROM ibor.fact_fx_rate
+WHERE from_currency_code = p_from
+  AND to_currency_code   = p_to
+  AND rate_date <= p_at
+ORDER BY rate_date DESC
+LIMIT 1;
+$$;
+
+-- Triangulate via USD if direct missing
+CREATE OR REPLACE FUNCTION ibor.fn_pick_fx_triangulated_via_usd(
+    p_from CHAR(3), p_to CHAR(3), p_at DATE
+) RETURNS NUMERIC LANGUAGE sql AS $$
+WITH
+    r1 AS (SELECT ibor.fn_pick_fx_direct(p_from, 'USD', p_at)  AS a),
+    r2 AS (SELECT ibor.fn_pick_fx_direct(p_to,   'USD', p_at)  AS b)
+SELECT CASE
+           WHEN (SELECT a FROM r1) IS NULL OR (SELECT b FROM r2) IS NULL THEN NULL
+           ELSE (SELECT a FROM r1) / (SELECT b FROM r2)
+           END;
+$$;
+
+-- Unified picker: direct else triangulated
+CREATE OR REPLACE FUNCTION ibor.fn_pick_fx_at_or_before(
+    p_from CHAR(3), p_to CHAR(3), p_at DATE
+) RETURNS NUMERIC LANGUAGE sql AS $$
+SELECT COALESCE(
+               ibor.fn_pick_fx_direct(p_from, p_to, p_at),
+               ibor.fn_pick_fx_triangulated_via_usd(p_from, p_to, p_at)
+       );
+$$;
+
 -- =========================================================
 -- Sanity helpers
 -- =========================================================

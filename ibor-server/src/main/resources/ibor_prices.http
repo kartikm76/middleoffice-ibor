@@ -1,0 +1,73 @@
+### --- Defaults (edit as needed) ---
+@host = localhost
+@port = 8080
+@base = http://{{host}}:{{port}}
+
+@portfolio = P-ALPHA
+@instrument = EQ-IBM
+@asOf = 2025-01-02
+@from = 2025-01-01
+@to = 2025-01-10
+@source = BBG
+@baseCurrency = USD
+
+### Health
+GET {{base}}/actuator/health
+
+> {% client.test("Health is UP", function() {
+        client.assert(response.status === 200, "Expected 200");
+        const b = response.body;
+        client.assert(b.status === "UP", "App should be UP");
+    }); %}
+
+### Positions (portfolio summary)
+GET {{base}}/api/positions?portfolioCode={{portfolio}}&asOf={{asOf}}
+
+> {% client.test("Positions list OK", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(Array.isArray(response.body), "Response should be an array");
+    }); %}
+
+### Positions drilldown (instrument-level; lotView NONE for v1)
+GET {{base}}/api/positions/{{portfolio}}/{{instrument}}?asOf={{asOf}}&lotView=NONE
+
+> {% client.test("Drilldown OK, portfolio matches", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(response.body.portfolioCode === "{{portfolio}}", "portfolioCode mismatch");
+        client.assert(Array.isArray(response.body.transactions), "transactions[] missing");
+        client.assert(Array.isArray(response.body.lots), "lots[] missing");
+    }); %}
+
+### Prices (raw, all sources)
+GET {{base}}/api/prices/{{instrument}}?from={{from}}&to={{to}}
+
+> {% client.test("Prices raw OK", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(Array.isArray(response.body), "Response should be an array");
+        if (response.body.length > 0) {
+            const row = response.body[0];
+            client.assert(!!row.priceTs, "priceTs missing");
+            client.assert(!!row.price, "price missing");
+            client.assert(!!row.currencyCode, "currencyCode missing");
+        }
+    }); %}
+
+### Prices (source-filtered)
+GET {{base}}/api/prices/{{instrument}}?from={{from}}&to={{to}}&source={{source}}
+
+> {% client.test("Prices filtered by source OK", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(Array.isArray(response.body), "Response should be an array");
+    }); %}
+
+### Prices (FX-normalized to base currency)
+GET {{base}}/api/prices/{{instrument}}?from={{from}}&to={{to}}&baseCurrency={{baseCurrency}}
+
+> {% client.test("Prices normalized to base currency OK", function() {
+        client.assert(response.status === 200, "Expected 200");
+        client.assert(Array.isArray(response.body), "Response should be an array");
+        if (response.body.length > 0) {
+            client.assert(response.body.every(r => r.currencyCode === "{{baseCurrency}}"),
+                "All rows should be in baseCurrency");
+        }
+    }); %}

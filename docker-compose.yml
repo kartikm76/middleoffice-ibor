@@ -1,15 +1,25 @@
 services:
   postgres:
     image: pgvector/pgvector:pg16
+    container_name: docker-postgres-1   # <— add this to make naming stable (optional)
     environment:
       POSTGRES_DB: ibor
       POSTGRES_USER: ibor
       POSTGRES_PASSWORD: ibor
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-      - ./db/init:/docker-entrypoint-initdb.d
-      - ./db/data:/data
     ports:
       - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Mounts below are optional now (script streams SQL/CSV via STDIN),
+      # but keeping them is handy for manual poking inside the container:
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+      - ./db/data:/data:ro
+    healthcheck:                         # <— helpful, but script also waits via psql
+      test: ["CMD-SHELL", "pg_isready -U ibor -d ibor || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
 volumes:
   pgdata:

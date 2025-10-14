@@ -224,15 +224,17 @@ CREATE TABLE stg.price (
   updated_at         TIMESTAMP DEFAULT now()
 );
 
+
 CREATE TABLE stg.fx_rate (
-  currency_code     CHAR(3),
-  rate_date         DATE,
-  rate              NUMERIC(28,10),
-  source_system     TEXT,
-  source_ref        TEXT,
-  ingest_batch_id   TEXT,
-  created_at        TIMESTAMP DEFAULT now(),
-  updated_at        TIMESTAMP DEFAULT now()
+  from_currency_code CHAR(3),
+  to_currency_code   CHAR(3),
+  rate_date          DATE,
+  rate               NUMERIC(28,10),
+  source_system      TEXT,
+  source_ref         TEXT,
+  ingest_batch_id    TEXT,
+  created_at         TIMESTAMP DEFAULT now(),
+  updated_at         TIMESTAMP DEFAULT now()
 );
 
 CREATE TABLE stg.trade_fill (
