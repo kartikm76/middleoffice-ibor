@@ -39,7 +39,7 @@ This README gives you:
 ---
 
 ````
-## Repository layout
+## Repository Layout
 ```
 middleoffice-ibor/
 ├ docker/                     # Docker and DB bootstrap
@@ -195,13 +195,25 @@ RAG (pgvector)
 - docker/db/init/*.sql: schema, staging, loaders, helpers
 - docker/db/data/*.csv: sample inputs, with mapping in stg_mapping.json
 - load_all.sh: one-stop helper
-  - init_infra → apply SQL (schemas, functions)
-  - load_staging → COPY CSVs to stg.*
-  - load_main → run ibor.run_all_loaders() to populate ibor.*
+ ```
+      ./load_all.sh
+      Usage: ./load_all.sh <init_infra|load_staging|load_main|full>
 
+      ./load_all.sh init_infra
+      Initializes schemas, helpers and loaders.
+
+      ./load_all.sh load_staging
+      Copies CSVs to staging tables (stg.*).
+
+      ./load_all.sh load_main
+      Runs ibor.run_all_loaders() to populate curated tables (ibor.*).
+
+      ./load_all.sh full
+      Runs init_infra, load_staging and load_main in sequence.
+```
 ---
 
-## Next steps to integrate with AI
+## Next steps to integrate with AI for natural question answering on IBOR data
 Here’s how I’m wiring AI into this stack:
 
 1) Configure models and keys
