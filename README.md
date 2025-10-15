@@ -1,13 +1,20 @@
 # IBOR Hybrid Starter (Postgres + pgvector + Spring Boot + Angular)
 
+Objective: Build an IBOR platform that should:
+1. Display transactions by an asset class
+2. Display Positions on those transactions (long / short)
+3. Display cash ladder (cash inflow/outflow) of next 7 days
+4. User should be able to select the position by Portfolio / Account
+5. Provide a search feature for notes and documents related to positions.
+
+## High-level Architecture
+````
 An opinionated starter for an Investment Book of Record (IBOR) with:
 - Relational core (trades, instruments, portfolios, positions, cash, FX)
 - pgvector RAG store for notes/documents
 - Spring Boot server (hybrid answers: SQL facts + RAG context)
 - Optional Angular client
 
-## High-level Architecture
-````
 User → Controllers → (StructuredService + RagService)
 |                    |
 |                    +— pgvector (rag_chunks), rag_documents
@@ -24,13 +31,14 @@ Kafka/ETL/External Sources (Phase 2)
 ---
 
 This README gives you:
-- Clear ASCII ER diagram of the curated schema (ibor.*)
+- ER diagram of the curated schema (ibor.*)
 - High-level flow from data files → staging → curated → API/LLM
 - Quick start commands
 - Next steps to integrate with AI (RAG + hybrid answering)
 
 ---
 
+````
 ## Repository layout
 ```
 middleoffice-ibor/
@@ -44,7 +52,7 @@ middleoffice-ibor/
 ├ docker-compose.yml          # Postgres 16 + pgvector
 └ README.md                   # You are here
 ```
----
+````
 ## Tech & Pre-Requisites
 
 - Java 21+ (tested with Java 23)
@@ -54,7 +62,7 @@ middleoffice-ibor/
 - OpenAI API key
 ---
 
-
+````
 ## Quick start
 1) Start Postgres (with pgvector)
 ```
@@ -81,7 +89,7 @@ java -jar target/ibor-server-*.jar
 
 ---
 
-## ASCII ER diagram (curated schema: ibor.*)
+## ER diagram (curated schema: ibor.*)
 Legend: [PK] primary key, [FK] foreign key, (SCD2) slowly-changing dimension type 2
 
 ```
@@ -158,9 +166,7 @@ RAG (pgvector)
                              │ document_id [FK]   │
                              │ embedding vector   │
                              └────────────────────┘
-```
-
----
+````
 
 ## High-level data and request flow
 ```
@@ -196,29 +202,27 @@ RAG (pgvector)
 ---
 
 ## Next steps to integrate with AI
-You already have vector-ready tables and a Spring Boot server capable of hybrid answers. To complete AI integration:
+Here’s how I’m wiring AI into this stack:
 
 1) Configure models and keys
-- Set environment variables for ibor-server:
-  - OPENAI_API_KEY, and optionally model names (chat/embeddings)
+- Export OPENAI_API_KEY in the environment for ibor-server.
+- Optionally set chat and embedding model names in config if I want to override defaults.
 
 2) Ingest knowledge into RAG
-- Use ibor-server endpoints (see ibor-server/README.md) to:
-  - POST /api/notes/ingest → embeds and stores into rag_documents + rag_chunks
-  - POST /api/rag/search → vector search (similarity)
+- Use POST /api/notes/ingest to embed and persist notes into rag_documents + rag_chunks.
+- Sanity‑check retrieval with POST /api/rag/search (vector similarity).
 
 3) Expose structured tools to the LLM
-- StructuredService endpoints already query SQL facts (positions, prices, cash)
-- Ensure these are registered as tools for the assistant (LangChain4j)
+- Surface StructuredService methods (positions, prices, cash) as LangChain4j tools.
+- Keep tool outputs row‑shaped (lists of maps) so the assistant stays deterministic.
 
-4) Enable hybrid Q&A
-- Use /api/rag/hybrid to compose: structured SQL output + top-K RAG chunks → assistant
-- Adjust the system prompt to enforce: “numbers come from SQL; text context from RAG”
+4) Turn on hybrid Q&A
+- Call /api/rag/hybrid so SQL facts + top‑K RAG chunks are composed into one answer.
+- System prompt states explicitly: numbers come from SQL; narrative/context comes from RAG
 
 5) Hardening and quality
-- Add guardrails (schema-constrained tool I/O, row-shape contracts)
-- Add caching of embeddings/search if needed
-- Tune pgvector index (lists, probes) for your data size
+- Add guardrails on tool inputs/outputs (schemas, ranges) and cache when helpful.
+- Tune pgvector index params (lists/probes) to match corpus size.
 
 6) Observability
 - Log traces per request (SQL + vector search + LLM call)
