@@ -1,0 +1,17 @@
+package com.kmakker.ibor.model.instrument;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.Optional;
+
+public record Bond(
+    String instrumentCode,
+    String instrumentType,
+    Optional<String> instrumentName,
+    Optional<String> exchangeCode,
+    Optional<String> currencyCode,
+    LocalDate validFrom,
+    LocalDate validTo,
+    Optional<LocalDate> maturityDate,
+    Optional<BigDecimal> couponRate
+) implements Instrument {}

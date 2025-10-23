@@ -1,0 +1,19 @@
+### 1️⃣ Get specific instrument as of date
+GET http://localhost:8080/api/instruments/EQ-IBM?asOf=2025-01-03
+Accept: application/json
+
+### 2️⃣ Test bond
+GET http://localhost:8080/api/instruments/BND-TESLA?asOf=2025-01-03
+Accept: application/json
+
+### 3️⃣ Test futures
+GET http://localhost:8080/api/instruments/FUT-GOLD-202503?asOf=2025-03-01
+Accept: application/json
+
+### 4️⃣ Test option
+GET http://localhost:8080/api/instruments/OPT-IBM-20250321-185C?asOf=2025-03-15
+Accept: application/json
+
+### 6️⃣ Test invalid (expect 404 or 400)
+GET http://localhost:8080/api/instruments/NONEXISTENT?asOf=2025-01-03
+Accept: application/json

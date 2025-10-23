@@ -62,7 +62,9 @@ CREATE TABLE ibor.dim_instrument (
   updated_at       TIMESTAMP NOT NULL DEFAULT now(),
   UNIQUE (instrument_code, valid_from)
 );
-CREATE INDEX idx_instr_current ON ibor.dim_instrument (instrument_code) WHERE is_current;
+
+CREATE INDEX IF NOT EXISTS idx_instr_code ON ibor.dim_instrument (instrument_code);
+CREATE INDEX IF NOT EXISTS idx_instr_pit  ON ibor.dim_instrument (valid_from, valid_to);
 
 -- Equity subtype (rich)
 CREATE TABLE ibor.dim_instrument_equity (
