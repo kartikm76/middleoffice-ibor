@@ -34,7 +34,7 @@ public class StructuredController {
     public PositionResponse position(
             @RequestParam("tickerOrId") String tickerOrId,
             @RequestParam(value = "portfolioIds", required = false) List<String> portfolioCodes
-    ){
+    ) {
         Map<String,Object> facts = svc.getPositionAggregate(tickerOrId, portfolioCodes);
         List<Map<String,Object>> perPf = svc.byPortfolio(tickerOrId);
 
