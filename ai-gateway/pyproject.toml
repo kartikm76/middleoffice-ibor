@@ -1,0 +1,24 @@
+[project]
+name = "ai-gateway"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "kartikm76@yahoo.com", email = "kartikm76@yahoo.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.119.1",
+    "httpx>=0.28.1",
+    "pydantic>=2.12.3",
+    "pydantic-settings>=2.11.0",
+    "python-dotenv>=1.1.1",
+    "uvicorn[standard]>=0.38.0",
+]
+
+[project.scripts]
+ai-gateway = "ai_gateway:main"
+
+[build-system]
+requires = ["uv_build>=0.9.5,<0.10.0"]
+build-backend = "uv_build"
