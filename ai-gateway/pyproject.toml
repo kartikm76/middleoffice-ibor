@@ -15,6 +15,10 @@ dependencies = [
     "pydantic-settings>=2.11.0",
     "python-dotenv>=1.1.1",
     "uvicorn[standard]>=0.38.0",
+    "opentelemetry-sdk>=1.38.0",
+    "opentelemetry-exporter-otlp>=1.38.0",
+    "opentelemetry-instrumentation-fastapi>=0.59b0",
+    "opentelemetry-instrumentation-httpx>=0.59b0",
 ]
 
 [project.scripts]
