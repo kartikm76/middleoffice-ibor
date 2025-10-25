@@ -1,46 +1,69 @@
+# src/ai_gateway/clients/ibor_client.py
+from __future__ import annotations
+import logging
+from typing import Any, Dict, Optional
 import httpx
-from typing import Optional, Dict, Any
 from ai_gateway.config import settings
 
-class IBORClient:
+log = logging.getLogger(__name__)
+
+class IborClient:
     """
-    HTTP client to call Spring Boot structured data API.
-    Single responsibility: send requests to IBOR structured data API and return responses.
-    No business logic here.
+    Thin HTTP client for the IBOR structured API (Spring Boot).
+    No business logic here—just request/response handling.
     """
 
-    def __init__(self):
-        self._base = settings.strructured_api_base.rstrip('/')
-    
-    async def get_positions(self, portfolio_code: str, as_of: str) -> Dict[str, Any]:
+    def __init__(
+            self,
+            base_url: Optional[str] = None,
+            timeout_seconds: float = 10.0,
+            verify_tls: bool = True,
+    ) -> None:
+        self._base = (base_url or settings.structured_api_base).rstrip("/")
+        self._timeout = timeout_seconds
+        self._verify = verify_tls
+
+        # Single reusable sync client
+        self._client = httpx.Client(timeout=self._timeout, verify=self._verify)
+
+    # ---------- Positions (portfolio-level) ----------
+    def get_positions(self, portfolio_code: str, as_of: str) -> Dict[str, Any]:
+        """
+        GET /api/positions?portfolioCode=...&asOf=YYYY-MM-DD
+        """
         url = f"{self._base}/positions"
-        params = {"portfolioCode:":portfolio_code, "asOf": as_of}
+        params = {"portfolioCode": portfolio_code, "asOf": as_of}
+        log.debug("GET %s params=%s", url, params)
 
-        async with httpx.AsyncClient(timeout=10.0, verify=False) as client:
-            r = await client.get(url, params=params)
+        r = self._client.get(url, params=params)
         r.raise_for_status()
         return r.json()
-    
-    async def get_position_drilldown(self, portfolio_code: str, instrument_code: str, as_of: str) -> Dict[str, Any]:
+
+    # ---------- Instrument drill-down ----------
+    def get_position_drilldown(
+            self,
+            portfolio_code: str,
+            instrument_code: str,
+            as_of: str,
+            lot_view: str = "NONE",
+    ) -> Dict[str, Any]:
+        """
+        GET /api/positions/{portfolioCode}/{instrumentCode}?asOf=YYYY-MM-DD&lotView=NONE
+        """
         url = f"{self._base}/positions/{portfolio_code}/{instrument_code}"
-        params = {"asOf": as_of}
-        
-        async with httpx.AsyncClient(timeout=10.0, verify=False) as client:
-            r = await client.get(url, params=params)
+        params = {"asOf": as_of, "lotView": lot_view}
+        log.debug("GET %s params=%s", url, params)
+
+        r = self._client.get(url, params=params)
         r.raise_for_status()
         return r.json()
-    
-    async def get_prices(self, instrument_code: str, from_date: str, to_date: str, 
-                         source: Optional[str] = None, base_currency: Optional[str] = None) -> Dict[str, Any]:
-        url = f"{self._base}/prices/{instrument_code}"
-        params = {"from": from_date, "to": to_date}
 
-        if source:
-            params["source"] = source
-        if base_currency:
-            params["baseCurrency"] = base_currency
+    # ---------- Lifecycle ----------
+    def close(self) -> None:
+        try:
+            self._client.close()
+        except Exception:  # pragma: no cover
+            log.exception("Error closing IborClient httpx.Client")
 
-        async with httpx.AsyncClient(timeout=10.0, verify=False) as client:
-            r = await client.get(url, params=params)
-        r.raise_for_status()
-        return r.json()
+    def __del__(self) -> None:  # pragma: no cover
+        self.close()
