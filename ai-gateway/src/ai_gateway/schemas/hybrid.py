@@ -44,3 +44,58 @@ class FinalAnswer(BaseModel):
     facts: FactsEnvelope
     citations: List[Citation] = Field(default_factory=list, description="The citations used in the chat session.")
     assumptions: List[str] = Field(default_factory=list, description="The assumptions made in the chat session.")
+
+class PositionsAnswer(BaseModel):
+    """
+    Request body for /agents/analyst/positions
+    """
+    portfolio_code: str = Field(..., description="The portfolio code for which positions are requested.")
+    as_of: date = Field(..., description="The date as-of which positions are requested.")
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "portfolio_code": "P-ALPHA",
+                "as_of": "2023-09-28",
+            }
+        }
+    }
+
+class TradesAnswer(BaseModel):
+    """
+    Request body for /agents/analyst/trades
+    """
+    portfolio_code: str = Field(..., description="The portfolio code for which trades are requested.")
+    instrument_code: str = Field(..., description="The instrument code for which trades are requested.")
+    as_of: date = Field(..., description="The date as-of which trades are requested.")
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "portfolio_code": "P-ALPHA",
+                "instrument_code": "EQ-IBM",
+                "as_of": "2023-09-28",
+            }
+        }
+    }
+
+class PricesAnswer(BaseModel):
+    """Request body for /agents/analyst/prices"""
+    instrument_code: str = Field(..., description="The instrument code for which prices are requested.")
+    from_date: date = Field(..., description="The start date for the price range.")
+    to_date: date = Field(..., description="The end date for the price range.")
+    source: Optional[str] = Field(None, description="The source for the prices.")
+    base_currency: Optional[str] = Field(None, description="The base currency for the prices.")
+
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "instrument_code": "EQ-IBM",
+                "from_date": "2023-09-28",
+                "to_date": "2023-10-05",
+                "source": "yahoo",
+                "base_currency": "USD",
+            }
+        }
+    }
