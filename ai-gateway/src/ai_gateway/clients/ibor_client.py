@@ -8,6 +8,10 @@ class IborClient:
     def __init__(self):
         self._base = settings.structured_api_base.rstrip('/')
 
+    @property
+    def base(self) -> str:
+        return self._base
+
     def get_positions(
             self, portfolio_code: str, as_of: str,
             base_currency: Optional[str] = None,

@@ -51,7 +51,6 @@ class PositionsAnswer(BaseModel):
     """
     portfolio_code: str = Field(..., description="The portfolio code for which positions are requested.")
     as_of: date = Field(..., description="The date as-of which positions are requested.")
-
     model_config = {
         "json_schema_extra": {
             "example": {
@@ -68,7 +67,6 @@ class TradesAnswer(BaseModel):
     portfolio_code: str = Field(..., description="The portfolio code for which trades are requested.")
     instrument_code: str = Field(..., description="The instrument code for which trades are requested.")
     as_of: date = Field(..., description="The date as-of which trades are requested.")
-
     model_config = {
         "json_schema_extra": {
             "example": {
@@ -86,8 +84,6 @@ class PricesAnswer(BaseModel):
     to_date: date = Field(..., description="The end date for the price range.")
     source: Optional[str] = Field(None, description="The source for the prices.")
     base_currency: Optional[str] = Field(None, description="The base currency for the prices.")
-
-
     model_config = {
         "json_schema_extra": {
             "example": {
@@ -96,6 +92,26 @@ class PricesAnswer(BaseModel):
                 "to_date": "2023-10-05",
                 "source": "yahoo",
                 "base_currency": "USD",
+            }
+        }
+    }
+
+class PnLAnswer(BaseModel):
+    portfolio_code: str = Field(..., alias="portfolioCode", description="Portfolio code, e.g. P-ALPHA")
+    as_of: date = Field(..., alias="asOf", description="Current as-of date YYYY-MM-DD")
+    prior: date = Field(..., description="Prior as-of date YYYY-MM-DD")
+    instrument_code: Optional[str] = Field(None, alias="instrumentCode",
+        description="Optional instrument scope (e.g., EQ-IBM). If omitted, computes for whole portfolio."
+    )
+    model_config = {
+        "validate_assignment": True,  # ensure aliases map correctly
+        "populate_by_name": True,     # allow either camelCase or snake_case from UI
+        "json_schema_extra": {
+            "example": {
+                "portfolioCode": "P-ALPHA",
+                "asOf": "2025-01-03",
+                "prior": "2025-01-01",
+                "instrumentCode": "EQ-IBM"
             }
         }
     }

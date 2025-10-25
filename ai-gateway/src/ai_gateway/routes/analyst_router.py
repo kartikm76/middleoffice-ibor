@@ -9,7 +9,10 @@ from ai_gateway.agents.analyst import AnalystAgent, AnalystAnswer
 from ai_gateway.clients.ibor_client import IborClient
 from ai_gateway.tools.structured import StructuredTools
 from ai_gateway.schemas.common import AnalystAnswerModel
-from ai_gateway.schemas.hybrid import PositionsAnswer, TradesAnswer, PricesAnswer
+from ai_gateway.schemas.hybrid import (PositionsAnswer,
+                                       TradesAnswer,
+                                       PricesAnswer,
+                                       PnLAnswer)
 
 router = APIRouter(
     prefix="/agents/analyst",
@@ -108,3 +111,21 @@ def prices(body: PricesAnswer) -> AnalystAnswerModel:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"prices failed: {e}") from e
+
+@router.post(
+    "/pnl",
+    response_model=AnalystAnswerModel,
+    summary="PnL proxy via market value delta (v1)",
+    description="Delta of market value between two dates for a portfolio (or instrument if provided). Numbers sourced strictly from the structured service."
+)
+def pnl(body: PnLAnswer) -> AnalystAnswerModel:
+    try:
+        ans = _agent.why_pnl_changed(
+            portfolio_code=body.portfolio_code,
+            as_of=body.as_of,
+            prior=body.prior,
+            instrument_code=body.instrument_code,
+        )
+        return AnalystAnswerModel(**_to_jsonable(ans))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"pnl failed: {e}") from e

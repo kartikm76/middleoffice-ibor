@@ -5,7 +5,9 @@ from dataclasses import dataclass, field
 from datetime import datetime, date
 from decimal import Decimal, InvalidOperation
 from typing import Any, Dict, List, Literal, Optional
+import uuid
 
+from ai_gateway.infra.tracing import traced
 from ai_gateway.tools.structured import StructuredTools
 
 
@@ -51,7 +53,8 @@ class AnalystAgent:
     """
     Option A:
       - Uses StructuredTools to fetch raw numbers.
-      - Computes *small derived aggregates* (e.g., sums) for summary/diagnostics ONLY.
+      - Computes *small derived aggregates* only for 'summary'.
+      - 'diagnostics' is TELEMETRY-ONLY (traceId, tools, notes).
       - Never mutates the raw 'data' block returned by tools.
     """
 
@@ -60,23 +63,29 @@ class AnalystAgent:
         self.contract_version = 1
 
     # -------- positions today --------
+    @traced("agent.positions")
     def positions_today(self, portfolio_code: str, as_of: date) -> AnalystAnswer:
-        payload = self.tools.positions(portfolio_code=portfolio_code, as_of=as_of, base_currency=None, source=None)
+        payload = self.tools.positions(
+            portfolio_code=portfolio_code,
+            as_of=as_of,               # your StructuredTools may handle date or str; pass date here
+            base_currency=None,
+            source=None,
+        )
         positions = _extract_positions(payload)
 
-        # Aggregates (grounded on payload)
-        total_mv = _sum_decimal(p.get("marketValue") for p in positions)
-        total_qty = _sum_decimal(p.get("netQty") for p in positions)
+        # Aggregates (for summary only)
+        total_mv = _sum_decimal(p.get("mktValue") for p in positions)
         currencies = sorted({(p.get("currency") or "").upper() for p in positions if p.get("currency")})
         count_instr = len(positions)
 
         # Structured citation (if tool attached one)
         citations = _extract_structured_citation(payload)
 
-        summary = (
-                f"{portfolio_code} has {count_instr} instruments as of {as_of}; "
-                f"sum(marketValue)={total_mv} " + ("/".join(currencies) if currencies else "")
-        ).strip()
+        ccy_suffix = f" {'/'.join(currencies)}" if currencies else ""
+        summary = f"{portfolio_code} has {count_instr} instruments as of {as_of}; sum(mktValue)={total_mv}{ccy_suffix}"
+
+        # TELEMETRY ONLY
+        diagnostics = _telemetry(tools=["positions"])
 
         return AnalystAnswer(
             contract_version=self.contract_version,
@@ -86,36 +95,31 @@ class AnalystAgent:
             data=payload if isinstance(payload, dict) else {"positions": positions},
             summary=summary,
             citations=citations,
-            diagnostics={
-                "countInstruments": count_instr,
-                "sumMarketValue": str(total_mv),
-                "sumNetQty": str(total_qty),
-                "currencies": currencies,
-            },
+            diagnostics=diagnostics,
         )
 
     # -------- transaction lineage (instrument) --------
+    @traced("agent.trades")
     def show_trades(self, portfolio_code: str, instrument_code: str, as_of: date) -> AnalystAnswer:
         payload = self.tools.position_drilldown(
             portfolio_code=portfolio_code,
             instrument_code=instrument_code,
             as_of=as_of,
         )
-
-        # Expect tool to return { transactions: [...], lots: [...] } or at least transactions[]
         transactions = _extract_transactions(payload)
 
-        # Aggregates for summary (grounded on payload)
+        # Aggregates (for summary only)
         gross = _sum_decimal(_mul(p.get("quantity"), p.get("price")) for p in transactions)
         net_qty = _sum_decimal(p.get("quantity") for p in transactions)
         n_trades = len(transactions)
 
         citations = _extract_structured_citation(payload)
-
         summary = (
             f"{instrument_code} in {portfolio_code} as of {as_of}: "
             f"{n_trades} transactions, netQty={net_qty}, gross≈{gross}"
         )
+
+        diagnostics = _telemetry(tools=["position_drilldown"])
 
         return AnalystAnswer(
             contract_version=self.contract_version,
@@ -126,14 +130,11 @@ class AnalystAgent:
             data=payload if isinstance(payload, dict) else {"transactions": transactions},
             summary=summary,
             citations=citations,
-            diagnostics={
-                "transactionCount": n_trades,
-                "netQty": str(net_qty),
-                "grossAmountApprox": str(gross),
-            },
+            diagnostics=diagnostics,
         )
 
     # -------- prices (series) --------
+    @traced("agent.prices")
     def prices(
             self,
             instrument_code: str,
@@ -149,10 +150,9 @@ class AnalystAgent:
             source=source,
             base_currency=base_currency,
         )
-
         series = _extract_prices(payload)
 
-        # Derived quick stats
+        # Quick stats (for summary only)
         values = [_as_decimal(p.get("price")) for p in series]
         values = [v for v in values if v is not None]
         min_p = min(values) if values else None
@@ -161,7 +161,6 @@ class AnalystAgent:
         count = len(values)
 
         citations = _extract_structured_citation(payload)
-
         label_ccy = None
         if series:
             label_ccy = series[-1].get("currency") or series[0].get("currency")
@@ -172,30 +171,26 @@ class AnalystAgent:
                 + (f": n={count}, min={min_p}, max={max_p}, last={last_p}" if count else ": no data")
         )
 
-        # as_of here: use to_date to anchor; or omit if you prefer not to overload semantics
+        diagnostics = _telemetry(tools=["instrument_prices"])
+
         return AnalystAnswer(
             contract_version=self.contract_version,
             question=f"prices({instrument_code}, {from_date}, {to_date}, source={source}, base={base_currency})",
-            as_of=to_date.isoformat(),
+            as_of=to_date,  # keep 'as_of' as date (anchor to end of window)
             instrument_code=instrument_code,
             data=payload if isinstance(payload, dict) else {"prices": series},
             summary=summary,
             citations=citations,
-            diagnostics={
-                "count": count,
-                "min": str(min_p) if min_p is not None else None,
-                "max": str(max_p) if max_p is not None else None,
-                "last": str(last_p) if last_p is not None else None,
-                "currency": label_ccy,
-            },
+            diagnostics=diagnostics,
         )
 
     # -------- PnL proxy (delta of total MV) --------
+    @traced("agent.pnl")
     def why_pnl_changed(
             self,
             portfolio_code: str,
-            as_of: str,
-            prior: str,
+            as_of: date,
+            prior: date,
             instrument_code: Optional[str] = None,
     ) -> AnalystAnswer:
         # current snapshot
@@ -206,17 +201,17 @@ class AnalystAgent:
         prior_payload = self.tools.positions(portfolio_code=portfolio_code, as_of=prior)
         prior_positions = _extract_positions(prior_payload)
 
-        # Optionally scope to single instrument
+        # Optional instrument scope
         if instrument_code:
             curr_positions = [p for p in curr_positions if p.get("instrumentCode") == instrument_code]
             prior_positions = [p for p in prior_positions if p.get("instrumentCode") == instrument_code]
 
-        # Sum market values
-        curr_mv = _sum_decimal(p.get("marketValue") for p in curr_positions)
-        prior_mv = _sum_decimal(p.get("marketValue") for p in prior_positions)
+        # Sum market values (summary only)
+        curr_mv = _sum_decimal(p.get("mktValue") for p in curr_positions)
+        prior_mv = _sum_decimal(p.get("mktValue") for p in prior_positions)
         delta = curr_mv - prior_mv
 
-        # Citations: both calls
+        # Citations: both calls if provided by tools
         citations = []
         citations.extend(_extract_structured_citation(curr_payload))
         citations.extend(_extract_structured_citation(prior_payload))
@@ -227,15 +222,16 @@ class AnalystAgent:
             f"MV({as_of})={curr_mv} vs MV({prior})={prior_mv} → Δ={delta}"
         )
 
-        # Build a compact data object
         data = {
-            "asOf": as_of,
-            "prior": prior,
+            "asOf": str(as_of),
+            "prior": str(prior),
             "scope": instrument_code or "PORTFOLIO",
-            "current": {"sumMarketValue": str(curr_mv)},
-            "previous": {"sumMarketValue": str(prior_mv)},
+            "current": {"sumMktValue": str(curr_mv)},
+            "previous": {"sumMktValue": str(prior_mv)},
             "delta": str(delta),
         }
+
+        diagnostics = _telemetry(tools=["positions", "positions"], notes="current+prior snapshots")
 
         return AnalystAnswer(
             contract_version=self.contract_version,
@@ -246,11 +242,28 @@ class AnalystAgent:
             data=data,
             summary=summary,
             citations=citations,
-            diagnostics={
-                "currCount": len(curr_positions),
-                "priorCount": len(prior_positions),
-            },
+            diagnostics=diagnostics,
         )
+
+
+# ----------------------------
+# Telemetry helper
+# ----------------------------
+
+def _telemetry(*, tools: List[str], notes: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Telemetry-only diagnostics object.
+    Keep business stats OUT of this structure.
+    """
+    out: Dict[str, Any] = {
+        "traceId": uuid.uuid4().hex,
+        "tools": tools,
+    }
+    if notes:
+        out["notes"] = notes
+    # If your @traced decorator stores timings in a contextvar,
+    # you can read and attach them here.
+    return out
 
 
 # ----------------------------
