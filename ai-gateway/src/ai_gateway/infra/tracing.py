@@ -1,4 +1,32 @@
-# src/ai_gateway/infra/tracing.py
+"""Tracing utilities for ai-gateway.
+
+This module centralizes OpenTelemetry setup and a lightweight decorator to
+create spans around synchronous functions.
+
+Components:
+- init_tracing(...): Configures a TracerProvider with the given service name
+  and exporters.
+  - If ``otlp_endpoint`` is provided, spans are exported to that OTLP HTTP
+    collector (e.g. ``http://localhost:4318``).
+  - A console exporter can also be enabled (useful for local/dev verification).
+- traced(...): Decorator that starts a child span for the wrapped function.
+  - Allows custom span name, static attributes, and selective recording of
+    function arguments (sanitized) as span attributes.
+  - Exceptions are recorded on the span and the span status is marked as
+    error before the exception is re-raised.
+
+Typical usage:
+    from ai_gateway.infra.tracing import init_tracing, traced
+
+    init_tracing(service_name="ibor-ai-gateway", otlp_endpoint="http://localhost:4318")
+
+    @traced(arg_attrs=("order_id",))
+    def process(order_id: str):
+        ...
+
+Notes:
+- The decorator uses a process-global tracer named "ai-gateway".
+"""
 from __future__ import annotations
 from functools import wraps
 from typing import Optional, Iterable

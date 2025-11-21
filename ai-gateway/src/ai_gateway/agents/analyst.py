@@ -67,7 +67,7 @@ class AnalystAgent:
     def positions_today(self, portfolio_code: str, as_of: date) -> AnalystAnswer:
         payload = self.tools.positions(
             portfolio_code=portfolio_code,
-            as_of=as_of,               # your StructuredTools may handle date or str; pass date here
+            as_of=as_of,               # StructuredTools may handle date or str; pass date here
             base_currency=None,
             source=None,
         )
