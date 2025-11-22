@@ -187,7 +187,6 @@ class RagAgent:
         return hits
 
     # ---------------- Internals ----------------
-
     def _split(self, text: str, size: int, overlap: int) -> Iterable[str]:
         """Split text into overlapping chunks using a sliding window.
 

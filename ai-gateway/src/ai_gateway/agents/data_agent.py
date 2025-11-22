@@ -38,6 +38,6 @@ class DataAgent:
         )
 
     @traced("data_agent.pnl")
-    def pnl(self, portfolio_code: str, as_of: date, prior: date, instrument_code: Optional[str] = None) -> Dict[str, Any]:
+    def pnl(self, portfolio_code: str, as_of: date, prior: date, instrument_code: Optional[str] = None) -> None:
         # Returns {"pnl":[...]} + optional _citation
         return None

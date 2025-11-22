@@ -1,16 +1,31 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field
 
 class Settings(BaseSettings):
-    structured_api_base: str = "http://localhost:8080/api"
-    openai_model: str = "gpt-4.1-mini"
-    openai_embed_model: str = "text-embedding-3-small"
-    pg_dsn: str = "postgresql://ibor:ibor@localhost:5432/ibor"
-
-    # Pydantic v2: use SettingsConfigDict instead of inner Config class
     model_config = SettingsConfigDict(
-        env_file=".env",
-        env_prefix="AI_GATEWAY_",
-        extra="ignore",  # ignore unknown env vars instead of failing        
+            env_file=".env",        # load variables from .env
+            env_prefix="",          # set to "" if you don't want a prefix
+            extra="ignore",         # optional: ignore unknown env vars
+    )
+    structured_api_base: str = Field (
+        default="http://localhost:8080/api",
+        alias="STRUCTURED_API_BASE",   # <-- exact env var name
+    )
+    pg_dsn: str = Field(
+        default="postgresql://ibor:ibor@localhost:5432/ibor",
+        alias="PG_DSN",
+    )
+    openai_model: str = Field(
+        default="gpt-4.1-mini",
+        alias="OPENAI_MODEL",
+    )
+    openai_api_key: str = Field(
+        default="",
+        alias="OPENAI_API_KEY",
+    )
+    openai_embedding_model: str = Field(
+        default="text-embedding-3-small",
+        alias="OPENAI_EMBEDDING_MODEL",
     )
 
 settings = Settings()
