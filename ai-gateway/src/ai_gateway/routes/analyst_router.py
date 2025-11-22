@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import asdict, is_dataclass
 from typing import Any
 from fastapi import APIRouter, HTTPException
-from ai_gateway.agents.orchestrator_interface import AnalystService
+from ai_gateway.agents.i_orchestrator import AnalystService
 from ai_gateway.schemas.common import AnalystAnswerModel
 from ai_gateway.schemas.hybrid import (PositionsAnswer,
                                        TradesAnswer,
@@ -19,7 +19,6 @@ router = APIRouter(
         500: {"description": "Internal error"},
     },
 )
-
 
 def _to_jsonable(obj: Any) -> Any:
     """Convert dataclasses to plain dicts recursively so FastAPI/Pydantic can serialize."""

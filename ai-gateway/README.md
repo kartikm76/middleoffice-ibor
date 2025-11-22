@@ -12,6 +12,9 @@ Run the app (dev):
 # from the project root
 uv run uvicorn ai_gateway.app:app --host 127.0.0.1 --port 8000 --reload
 ```
+ # Run tests
+ PYTHONPATH=src .venv/bin/python -m pytest -vv
+```
 
 Endpoints:
 - GET / → {"service":"ibor-ai-gateway","status":"ok", ...}
@@ -153,4 +156,3 @@ curl -s -X POST 'http://localhost:8000/agents/analyst/prices' \
 curl -s -X POST 'http://localhost:8000/agents/analyst/pnl' \
   -H 'Content-Type: application/json' \
   -d '{"portfolio_code":"P-ALPHA","as_of":"2025-01-03","prior":"2025-01-01"}' | jq
-

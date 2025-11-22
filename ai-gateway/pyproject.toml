@@ -16,6 +16,7 @@ dependencies = [
     "python-dotenv>=1.1.1",
     "uvicorn[standard]>=0.38.0",
     "psycopg[binary]>=3.2",
+    "psycopg-pool>=3.2",
     "opentelemetry-sdk>=1.38.0",
     "opentelemetry-exporter-otlp>=1.38.0",
     "opentelemetry-instrumentation-fastapi>=0.59b0",
@@ -28,3 +29,8 @@ ai-gateway = "ai_gateway:main"
 [build-system]
 requires = ["uv_build>=0.9.5,<0.10.0"]
 build-backend = "uv_build"
+
+[tool.uv.dependency-groups]
+dev = [
+    "pytest>=8.3.0",
+]
