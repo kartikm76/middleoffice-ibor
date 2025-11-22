@@ -29,7 +29,7 @@ SELECT
     metadata,
     created_at,
     updated_at
-FROM ibor,rag_documents
+FROM ibor.rag_documents
 WHERE document_id = %(document_id)s;
 """
 
