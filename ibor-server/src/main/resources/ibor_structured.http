@@ -28,7 +28,6 @@ GET http://localhost:8080/api/structured/position?tickerOrId=IBM&portfolioIds=NO
 ### Notes - ingest (happy path)
 POST http://localhost:8080/api/notes/ingest
 Content-Type: application/json
-
 {
   "title": "IBM weekly update",
   "author": "PM Desk",
@@ -40,7 +39,6 @@ Content-Type: application/json
 ### Notes - ingest (multi-asset, multi-portfolio)
 POST http://localhost:8080/api/notes/ingest
 Content-Type: application/json
-
 {
   "title": "Weekly wrap",
   "author": "Risk",
@@ -52,7 +50,6 @@ Content-Type: application/json
 ### Notes - ingest (negative: missing author) -> expect 400
 POST http://localhost:8080/api/notes/ingest
 Content-Type: application/json
-
 {
   "title": "Bad request demo",
   "text": "This should fail because author is missing.",

@@ -14,6 +14,9 @@ uv run uvicorn ai_gateway.app:app --host 127.0.0.1 --port 8000 --reload
 ```
  # Run tests
  PYTHONPATH=src .venv/bin/python -m pytest -vv
+ OR
+ .venv/bin/python -m pytest -q
+ .venv/bin/python -m pytest -vv
 ```
 
 Endpoints:

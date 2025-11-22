@@ -14,7 +14,7 @@ class PgPool:
         return psycopg.connect(self._dsn)
 
 def test_pg_round_trip() -> None:
-    config = PgPoolConfig(dsn="postgresql://ibor:ibor@localhost:5432/ibor")
+    config = PgPoolConfig (dsn="postgresql://ibor:ibor@localhost:5432/ibor")
     pool = PgPool(config)
 
     with pool.get_conn() as conn:

@@ -52,8 +52,17 @@ class PgPool:
             max_size=config.max_size,
             max_lifetime=config.max_lifetime,
             timeout=config.max_wait,
+            open=True,
             kwargs={"row_factory": dict_row},
         )
+
+    def connection(self):
+        return self._pool.connection()
+
+    def open(self) -> None:
+        # keep compatibility if callers explicitly open
+        if not self._pool.open:
+            self._pool.open()
 
     def close(self) -> None:
         self._pool.close()
