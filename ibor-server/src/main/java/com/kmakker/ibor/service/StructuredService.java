@@ -21,7 +21,6 @@ import java.util.*;
  * - aggregate position (qty/side/MV) by instrument + optional portfolio filters
  * - by-portfolio position breakdown
  * - cash projection over a horizon
- *
  * NOTE: Methods return Map payloads to keep controllers simple; your controllers map to DTOs.
  */
 @Slf4j
@@ -56,7 +55,7 @@ public class StructuredService {
         // Optional portfolio filter: convert codes -> int ids (TradeRepository expects ids list or null)
         List<Integer> pfIds = resolvePortfolioIds(portfolioCodes);
 
-        BigDecimal qtyBD = trades.netQty(instrumentId, pfIds == null || pfIds.isEmpty() ? null : pfIds);
+        BigDecimal qtyBD = trades.netQty(instrumentId, pfIds.isEmpty() ? null : pfIds);
         double qty = qtyBD == null ? 0d : qtyBD.doubleValue();
         String side = qty > 0 ? "LONG" : (qty < 0 ? "SHORT" : "FLAT");
 

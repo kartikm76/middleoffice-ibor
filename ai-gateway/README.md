@@ -139,7 +139,7 @@ Supporting modules:
 - Flesh out unit tests using fake implementations of `AnalystService`.
 - Wrap tracing behind a simple interface if you want to further isolate domain code from OpenTelemetry specifics.
 
-## Qucik Checks
+## Quick Checks
 # positions
 curl -s -X POST 'http://localhost:8000/agents/analyst/positions' \
   -H 'Content-Type: application/json' \
@@ -159,3 +159,43 @@ curl -s -X POST 'http://localhost:8000/agents/analyst/prices' \
 curl -s -X POST 'http://localhost:8000/agents/analyst/pnl' \
   -H 'Content-Type: application/json' \
   -d '{"portfolio_code":"P-ALPHA","as_of":"2025-01-03","prior":"2025-01-01"}' | jq
+
+
+🧩 Two Parallel Worlds
+WORLD 1 — Deterministic Analytics (No LLM)
+Service Layer
+    analyst.py
+        •	deterministic business logic
+        •	calls StructuredTools → SpringBoot
+        •	returns AnalystAnswer dataclass
+Controller Layer
+    analyst_router.py
+        •	converts HTTP JSON → Pydantic
+        •	calls AnalystAgent
+        •	converts AnalystAnswer → JSON
+        •	exposes /agents/analyst/... endpoints
+⸻
+WORLD 2 — LLM / OpenAI Agent (AI Workflow)
+Agent Layer (LLM brain)
+    analyst_chat_agent.py
+        •	defines OpenAI Agent
+        •	registers tools: positions / trades / pnl
+        •	sets system prompt
+        •	runs Agent Handoff
+        •	produces LLM-generated answers with structure
+        •	interacts with OpenAI SDK
+Controller Layer (HTTP wrapper)
+    analyst_chat_router.py
+        •	exposes one REST endpoint:
+    POST /agents/analyst/chat
+        •	receives user input { question, context... }
+        •	calls analyst_chat_agent.ask(question)
+        •	returns structured AI answer
+        •	ensures JSON contract
+
+| File                            | Layer       | LLM? | What it does                                                                       |
+| ------------------------------- | ----------- | ---- | ---------------------------------------------------------------------------------- |
+| `agents/analyst.py`             | Domain core | ❌    | Deterministic analytics using StructuredTools, returns `AnalystAnswer`.            |
+| `routes/analyst_router.py`      | HTTP core   | ❌    | REST endpoints for positions/trades/pnl **without** OpenAI.                        |
+| `openai/analyst_chat_agent.py`  | LLM wrapper | ✅    | OpenAI Agent with tools that call `AnalystAgent` under the hood.                   |
+| `routes/analyst_chat_router.py` | HTTP LLM    | ✅    | `POST /agents/analyst/chat` → sends NL question into OpenAI Agent, returns answer. |
