@@ -99,7 +99,7 @@ Supporting modules:
 - `routes/analyst_router.py` – router factory that accepts any `AnalystService`.
 - `routes/hybrid_router.py` – additional hybrid/LLM endpoints.
 - `health.py` – readiness/liveness endpoints.
-- `config.py` – Pydantic settings (structured API base URL, OpenAI models, PostgreSQL DSN, etc.).
+- `config.py` – Pydantic settings (structured API base URL, OpenAI models, Postgres DSN, etc.).
 
 ## Key layers
 
@@ -107,7 +107,7 @@ Supporting modules:
    `IborClient` wraps HTTP calls to the structured Spring service and normalizes parameters.
 
 2. **Tools**
-   `StructuredTools` provides higher-level wrappers for positions, prices, drilldowns, etc.
+   `StructuredTools` provides higher-level wrappers for positions, prices, drill-downs, etc.
    `DataAgent` offers numeric-only views with tracing instrumentation.
 
 3. **Agents**
@@ -131,7 +131,7 @@ Supporting modules:
 - **Protocol-based abstraction**: `AnalystService` allows the router to accept any conforming implementation, enabling easy testing and future orchestration variants.
 - **Constructor injection**: `AnalystOrchestrator`, `StructuredTools`, and `IborClient` accept dependencies/configuration during construction, keeping state explicit.
 - **Tracing**: OpenTelemetry spans instrument agents and tools for observability.
-- **RAG support**: `RagAgent` encapsulates ingestion/search logic for document repositories (PostgreSQL + pgvector).
+- **RAG support**: `RagAgent` encapsulates ingestion/search logic for document repositories (Postgres + pgvector).
 
 ## Future enhancements
 
