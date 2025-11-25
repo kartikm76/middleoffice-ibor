@@ -1,11 +1,11 @@
 # src/ai_gateway/agents/analyst.py
 from __future__ import annotations
 
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, date
 from decimal import Decimal, InvalidOperation
 from typing import Any, Dict, List, Literal, Optional
-import uuid
 
 from ai_gateway.infra.tracing import traced
 from ai_gateway.tools.structured import StructuredTools
@@ -35,15 +35,12 @@ class AnalystAnswer:
     as_of: date
     portfolio_code: Optional[str] = None
     instrument_code: Optional[str] = None
-
     data: Dict[str, Any] = field(default_factory=dict)     # raw payload from tools (unchanged)
     summary: Optional[str] = None                          # short narrative from computed aggregates
     citations: List[Citation] = field(default_factory=list)
     gaps: List[str] = field(default_factory=list)
-
     created_at: datetime = field(default_factory=datetime.now)
     diagnostics: Optional[Dict[str, Any]] = None
-
 
 # ----------------------------
 # Agent (Option A)
