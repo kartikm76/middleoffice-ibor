@@ -1,7 +1,7 @@
 from  __future__ import annotations
 
 from datetime import date
-from typing import Optional, Dict, Any
+from typing import Optional, Any
 from dataclasses import is_dataclass, asdict
 
 from fastapi import APIRouter
@@ -54,39 +54,38 @@ class AnalystChatRequest(BaseModel):
             }
         }
 
-    def create_analyst_llm_router(agent: AnalystLLMAgent) -> APIRouter:
-        """
-        Factory so wiring stays in app/bootstrap code:
-        AnalystLlmAgent is created once and passed here.
-        """
-        router = APIRouter(
-            prefix="/analyst/analyst-llm",
-            tags=["Analyst LLM"],
-            responses = {
-                400: {"description": "Bad request"},
-                500: {"description": "Internal error"},
-            },
+def create_analyst_llm_router(agent: AnalystLLMAgent) -> APIRouter:
+    """
+    Factory so wiring stays in app/bootstrap code:
+    AnalystLlmAgent is created once and passed here.
+    """
+    router = APIRouter(
+        prefix="/analyst/analyst-llm",
+        tags=["Analyst LLM"],
+        responses = {
+            400: {"description": "Bad request"},
+            500: {"description": "Internal error"},
+        },
+    )
+
+    @router.post(
+        "/chat",
+        response_model = AnalystAnswerModel,
+        summary = "LLM driven analyst chat (positions/trades/pnl/prices)",
+        description = (
+                "Uses OpenAI + tools to decide whether to call positions, trades, pnl, or prices, "
+                "then returns a grounded AnalystAnswerModel."
+        ),
+    )
+    def chat(body: AnalystChatRequest) -> AnalystAnswerModel:
+        answer = agent.run_question(
+            question = body.question,
+            portfolio_code = body.portfolio_code,
+            as_of = body.as_of,
         )
+        return AnalystAnswerModel(**_to_jsonable(answer))
 
-        @router.post(
-            "/chat",
-            response_model = AnalystAnswerModel,
-            summary = "LLM driven analyst chat (positions/trades/pnl/prices)",
-            description = (
-                    "Uses OpenAI + tools to decide whether to call positions, trades, pnl, or prices, "
-                    "then returns a grounded AnalystAnswerModel."
-            ),
-        )
-
-        def chat(body: AnalystChatRequest) -> AnalystAnswerModel:
-            answer = agent.run_question(
-                question = body.question,
-                portfolio_code = body.portfolio_code,
-                as_of = body.as_of,
-            )
-            return AnalystAnswerModel(**_to_jsonable(answer))
-
-        return router
+    return router
 
 
 
