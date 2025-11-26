@@ -1,14 +1,16 @@
 from __future__ import annotations
 
-from dataclasses import asdict, is_dataclass
 from typing import Any
 from fastapi import APIRouter, HTTPException
 from ai_gateway.agents.i_orchestrator import AnalystService
 from ai_gateway.schemas.common import AnalystAnswerModel
-from ai_gateway.schemas.hybrid import (PositionsAnswer,
-                                       TradesAnswer,
-                                       PricesAnswer,
-                                       PnLAnswer)
+from ai_gateway.schemas.hybrid import (
+    PositionsAnswer,
+    TradesAnswer,
+    PricesAnswer,
+    PnLAnswer,
+)
+from ai_gateway.utils.jsonable import to_jsonable
 
 router = APIRouter(
     prefix="/agents/analyst",
@@ -19,16 +21,6 @@ router = APIRouter(
         500: {"description": "Internal error"},
     },
 )
-
-def _to_jsonable(obj: Any) -> Any:
-    """Convert dataclasses to plain dicts recursively so FastAPI/Pydantic can serialize."""
-    if is_dataclass(obj):
-        return {k: _to_jsonable(v) for k, v in asdict(obj).items()}
-    if isinstance(obj, list):
-        return [_to_jsonable(x) for x in obj]
-    if isinstance(obj, dict):
-        return {k: _to_jsonable(v) for k, v in obj.items()}
-    return obj
 
 def make_analyst_router(service: AnalystService) -> APIRouter:
     router = APIRouter(
@@ -52,7 +44,7 @@ def make_analyst_router(service: AnalystService) -> APIRouter:
             ans = service.positions(portfolio_code = body.portfolio_code,
                 as_of = body.as_of,
             )
-            return AnalystAnswerModel(**_to_jsonable(ans))
+            return AnalystAnswerModel(**to_jsonable(ans))
         except HTTPException:
             raise
         except Exception as e:
@@ -74,7 +66,7 @@ def make_analyst_router(service: AnalystService) -> APIRouter:
                     instrument_code = body.instrument_code,
                     as_of = body.as_of,
             )
-            return AnalystAnswerModel(**_to_jsonable(ans))
+            return AnalystAnswerModel(**to_jsonable(ans))
         except HTTPException:
             raise
         except Exception as e:
@@ -99,7 +91,7 @@ def make_analyst_router(service: AnalystService) -> APIRouter:
                     source=body.source,
                     base_currency=body.base_currency,
             )
-            return AnalystAnswerModel(**_to_jsonable(ans))
+            return AnalystAnswerModel(**to_jsonable(ans))
         except HTTPException:
             raise
         except Exception as e:
@@ -119,7 +111,7 @@ def make_analyst_router(service: AnalystService) -> APIRouter:
                     prior = body.prior,
                     instrument_code = body.instrument_code,
             )
-            return AnalystAnswerModel(**_to_jsonable(ans))
+            return AnalystAnswerModel(**to_jsonable(ans))
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"pnl failed: {e}") from e
 

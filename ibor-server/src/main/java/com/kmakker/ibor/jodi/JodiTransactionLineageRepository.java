@@ -132,7 +132,7 @@ public class JodiTransactionLineageRepository {
                 result.get("market_value", BigDecimal.class),
                 result.get("currency", String.class),
                 null,   // unrealizedPnl: add when you have cost basis
-                "NONE",             // lootingMethod: add when you have cost basis
+                "NONE",             // lottingMethod: add when you have cost basis
                 List.of(),          // transactions: add when you have transaction data
                 List.of()           // lots: add when you have lot data
         );

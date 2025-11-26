@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-from dataclasses import is_dataclass, asdict
 from datetime import date
 from typing import Optional, Dict, Any, List
 
@@ -11,9 +10,11 @@ from openai.types.chat import (
     ChatCompletionSystemMessageParam,
     ChatCompletionUserMessageParam,
 )
+from httpx import HTTPStatusError
 
 from ai_gateway.agents.analyst import AnalystAnswer
 from ai_gateway.openai.tool_runners import PositionsRunner, TradesRunner, PnLRunner, PricesRunner, ToolRunner
+from ai_gateway.utils.jsonable import to_jsonable
 
 SYSTEM_PROMPT_ANALYST_AGENT = """
 You are IBOR AnalystAgent.
@@ -35,16 +36,6 @@ You do NOT need to build JSON yourself.
 Just ask for tools as needed.
 The caller will convert your tool results into the final JSON envelope.
 """
-
-def _to_jsonable(obj: Any) -> Any:
-    """Convert dataclasses to plain dicts recursively so FastAPI/Pydantic can serialize."""
-    if is_dataclass(obj):
-        return {k: _to_jsonable(v) for k, v in asdict(obj).items()}
-    if isinstance(obj, list):
-        return [_to_jsonable(x) for x in obj]
-    if isinstance(obj, dict):
-        return {k: _to_jsonable(v) for k, v in obj.items()}
-    return obj
 
 class AnalystLLMAgent:
     """
@@ -226,7 +217,7 @@ class AnalystLLMAgent:
 
         user_payload = {
             "question": question,
-            "hints": hints,
+            "hints": to_jsonable(hints),
         }
         system_message: ChatCompletionSystemMessageParam = {
             "role": "system",
@@ -290,10 +281,37 @@ class AnalystLLMAgent:
         decision = self._build_decision(tool_name, args, hints)
 
         # Delegate to ToolRunner (which calls AnalystAgent → StructuredTools → Spring)
-        answer = runner.run(decision, question)
+        try:
+            answer = runner.run(decision, question)
+        except HTTPStatusError as exc:
+            status_code = exc.response.status_code if exc.response else None
+            as_of_str = decision.get("asOf") or hints.get("asOf")
+            as_of_date = None
+            if isinstance(as_of_str, str):
+                try:
+                    as_of_date = date.fromisoformat(as_of_str)
+                except ValueError:
+                    as_of_date = None
+            return AnalystAnswer(
+                contract_version=1,
+                question=question,
+                as_of=as_of_date or date.today(),
+                portfolio_code=decision.get("portfolioCode") or hints.get("portfolioCode"),
+                instrument_code=decision.get("instrumentCode"),
+                data={},
+                summary=None,
+                citations=[],
+                gaps=[
+                    "Structured data service failed to respond successfully; please retry or contact support."
+                ],
+                diagnostics={
+                    "note": "structured_api_error",
+                    "status_code": status_code,
+                    "url": str(exc.request.url) if exc.request else None,
+                },
+            )
 
-        # Ensure answer is JSON-serializable
-        return _to_jsonable(answer.data)
+        return answer
 
     def _build_decision(
         self,

@@ -41,7 +41,7 @@ public class TransactionLineageService {
             default -> List.of();
         };
 
-        String lootingMethod = (lotView == null)? "NONE" : lotView.toUpperCase();
+        String lottingMethod = (lotView == null)? "NONE" : lotView.toUpperCase();
 
         return new PositionDetailDTO(
                 header.asOf(),
@@ -53,7 +53,7 @@ public class TransactionLineageService {
                 header.marketValue(),
                 header.currency(),
                 header.unrealizedPnl(),
-                lootingMethod,
+                lottingMethod,
                 transactions,
                 lots
         );

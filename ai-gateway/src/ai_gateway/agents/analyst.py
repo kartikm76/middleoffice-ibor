@@ -63,10 +63,10 @@ class AnalystAgent:
     @traced("agent.positions")
     def positions_today(self, portfolio_code: str, as_of: date) -> AnalystAnswer:
         payload = self.tools.positions(
-            portfolio_code=portfolio_code,
-            as_of=as_of,               # StructuredTools may handle date or str; pass date here
-            base_currency=None,
-            source=None,
+            portfolio_code = portfolio_code,
+            as_of = as_of,               # StructuredTools may handle date or str; pass date here
+            base_currency = None,
+            source = None,
         )
         positions = _extract_positions(payload)
 
