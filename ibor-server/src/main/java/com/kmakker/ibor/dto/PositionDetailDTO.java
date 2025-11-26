@@ -14,7 +14,7 @@ public record PositionDetailDTO (
     BigDecimal marketValue,
     String currency,
     BigDecimal unrealizedPnl,
-    String lootingMethod,        // FIFO / LIFO / AVG / NONE
+    String lottingMethod,        // FIFO / LIFO / AVG / NONE
     List<TransactionDTO> transactions,
     List<LotDTO> lots
 ) {}

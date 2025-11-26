@@ -1,27 +1,14 @@
 from  __future__ import annotations
 
 from datetime import date
-from typing import Optional, Any
-from dataclasses import is_dataclass, asdict
+from typing import Optional
 
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
 from ai_gateway.openai.analyst_llm_agent import AnalystLLMAgent
 from ai_gateway.schemas.common import AnalystAnswerModel
-
-def _to_jsonable(obj: Any) -> Any:
-    """
-    Small helper to make sure dataclasses / nested objects
-    can be fed into AnalystAnswerModel(**...) without surprises.
-    """
-    if is_dataclass(obj):
-        return {k: _to_jsonable(v) for k, v in asdict(obj).items()}
-    if isinstance(obj, list):
-        return [_to_jsonable(x) for x in obj]
-    if isinstance(obj, dict):
-        return {k: _to_jsonable(v) for k, v in obj.items()}
-    return obj
+from ai_gateway.utils.jsonable import to_jsonable
 
 class AnalystChatRequest(BaseModel):
     """
@@ -54,7 +41,7 @@ class AnalystChatRequest(BaseModel):
             }
         }
 
-def create_analyst_llm_router(agent: AnalystLLMAgent) -> APIRouter:
+def make_analyst_llm_router(agent: AnalystLLMAgent) -> APIRouter:
     """
     Factory so wiring stays in app/bootstrap code:
     AnalystLlmAgent is created once and passed here.
@@ -83,7 +70,7 @@ def create_analyst_llm_router(agent: AnalystLLMAgent) -> APIRouter:
             portfolio_code = body.portfolio_code,
             as_of = body.as_of,
         )
-        return AnalystAnswerModel(**_to_jsonable(answer))
+        return AnalystAnswerModel(**to_jsonable(answer))
 
     return router
 
