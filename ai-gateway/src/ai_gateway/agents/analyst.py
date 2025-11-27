@@ -40,6 +40,7 @@ class AnalystAnswer:
     citations: List[Citation] = field(default_factory=list)
     gaps: List[str] = field(default_factory=list)
     created_at: datetime = field(default_factory=datetime.now)
+    dev_debug: bool = False
     diagnostics: Optional[Dict[str, Any]] = None
 
 # ----------------------------

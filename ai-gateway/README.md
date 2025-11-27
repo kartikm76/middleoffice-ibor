@@ -7,7 +7,17 @@ Prerequisites:
     - Python 3.13+
     - uv (https://docs.astral.sh/uv/)
 
+Activate the virtual environment:
+# from the project root
+source .venv/bin/activate
+
+Check installed packages:
+```bash
+# from the project root
+pip list
+```
 Run the app (dev):
+
 ```bash
 # from the project root
 uv run uvicorn ai_gateway.app:app --host 127.0.0.1 --port 8000 --reload
