@@ -15,6 +15,13 @@ class CitationModel(BaseModel):
     meta: Optional[dict[str, Any]] = None
 
 class AnalystAnswerModel(BaseModel):
+    """
+    Contract returned by Analyst routes.
+    Rules:
+    - All numbers must come from structured tools (citations.kind == 'structured').
+    - Narrative/context may be backed by RAG (citations.kind == 'rag').
+    - Always include as_of; include portfolio_code/instrument_code if relevant.
+    """
     contract_version: int = Field(
         1, description="Version of the response contract for deterministic clients."
     )
@@ -28,6 +35,11 @@ class AnalystAnswerModel(BaseModel):
     citations: List[CitationModel] = Field(default_factory=list)
     gaps: List[str] = Field(default_factory=list)
 
+    # dev flag – when true, diagnostics is safe to show in dev UI
+    dev_debug: bool = Field(
+        default=False,
+        description="If true, diagnostics contains verbose developer-only trace data.",
+    )
     created_at: datetime = Field(default_factory=datetime.now)
     diagnostics: Optional[dict[str, Any]] = None
 
