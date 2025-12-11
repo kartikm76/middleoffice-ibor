@@ -146,6 +146,7 @@ init_infra() {
   apply_sql "$INIT_DIR/03_audit_trigger.sql"
   apply_sql "$INIT_DIR/04_loaders.sql"
   apply_sql "$INIT_DIR/05_helpers.sql"
+  apply_sql "$INIT_DIR/06_vw_instrument.sql"
   say "Schemas & functions applied."
 }
 
