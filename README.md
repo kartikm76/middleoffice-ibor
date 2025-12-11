@@ -79,7 +79,6 @@ This repository provides a compact but realistic **Investment Book of Record (IB
     └ README.md
 ```
 ---
-
 ## 4. Get Started
 
 4.1 Prerequisites
@@ -124,6 +123,7 @@ This repository provides a compact but realistic **Investment Book of Record (IB
 4.5 Run the AI Gateway
     cd ai-gateway
     uv run uvicorn ai_gateway.app:app --host 127.0.0.1 --port 8000 --reload
+```
 ---
 
 ## 5. Test the System
