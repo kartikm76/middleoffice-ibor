@@ -98,8 +98,8 @@ AnalystOrchestrator (agents/orchestrator.py)
 
 Other pieces:
 - Tracing utilities (infra/tracing.py) decorate agents/tools.
-- `AnalystService` protocol (agents/orchestrator_interface.py) defines the router contract.
-- `make_analyst_router` (routes/analyst_router.py) builds HTTP endpoints using any `AnalystService`.
+- AnalystService protocol (agents/orchestrator_interface.py) defines the router contract.
+- make_analyst_router (routes/analyst_router.py) builds HTTP endpoints using any `AnalystService`.
 - Health checks and additional routers (health.py, routes/hybrid_router.py).
 
 Supporting modules:

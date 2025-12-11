@@ -12,24 +12,12 @@ Objective: Build an IBOR platform that should:
 An opinionated starter for an Investment Book of Record (IBOR) with:
 - Relational core (trades, instruments, portfolios, positions, cash, FX)
 - pgvector RAG store for notes/documents
-- Spring Boot server (hybrid answers: SQL facts + RAG context)
-- Optional Angular client
+- Spring Boot server to drive hybrid answers (SQL facts + RAG context)
+- Python FastAPI AI gateway to handle natural question answering and store RAG chunks
 
-User → Controllers → (StructuredService + RagService)
-|                    |
-|                    +— pgvector (rag_chunks), rag_documents
-|
-+— Postgres (trades, instruments, portfolios, cash_events…)
-↑
-Kafka/ETL/External Sources (Phase 2)
+
 
 ---
-- **StructuredService**: pulls **facts** (qty, MV, cash projections) from SQL.
-- **RagService**: manages **notes**, embeddings, pgvector search.
-- **Assistant** (LangChain4j): composes an answer using STRUCTURED facts + RAG context.
-
----
-
 This README gives you:
 - ER diagram of the curated schema (ibor.*)
 - High-level flow from data files → staging → curated → API/LLM
@@ -51,7 +39,22 @@ middleoffice-ibor/
 ├ load_all.sh                 # Helper: init schemas, load staging CSVs, run loaders
 ├ docker-compose.yml          # Postgres 16 + pgvector
 └ README.md                   # You are here
+
+ibor-server/ – Spring Boot IBOR service
+ai-gateway/ – Python FastAPI “AI gateway”
+docker-compose.yml – Postgres (pgvector) setup with init scripts
+load_all.sh, setup.sh etc. to bootstrap
+
+docker/db/init/:
+- 01_main_schema.sql – ibor.* + rag_* core (dims, facts, fx, rag tables)
+- 02_staging_schema.sql – stg.* raw/staging tables
+- 03_audit_trigger.sql – audit infra
+- 04_loaders.sql – staging → ibor loaders
+- 05_helpers.sql – helper functions (PIT, FX, resolvers)
+- 06_vw_instrument.sql – ibor.vw_instrument
+- run_all.sql – applies all init scripts
 ```
+
 ````
 ## Tech & Pre-Requisites
 
@@ -71,22 +74,28 @@ docker compose up -d
 
 2) Initialize schemas (ibor.*, stg.*), helpers and loaders
 ```
-./load_all.sh init_infra
+      ./load_all.sh
+      Usage: ./load_all.sh <init_infra|load_staging|load_main|full>
+
+      ./load_all.sh init_infra
+      Initializes schemas, helpers and loaders.
+
+      ./load_all.sh load_staging
+      Copies CSVs to staging tables (stg.*).
+
+      ./load_all.sh load_main
+      Runs ibor.run_all_loaders() to populate curated tables (ibor.*).
+
+      ./load_all.sh full
+      Runs init_infra, load_staging and load_main in sequence.
 ```
 
-3) Load sample CSVs into staging and move them into curated
-```
-./load_all.sh load_staging
-./load_all.sh load_main
-```
-
-4) Run the server (see ibor-server/README.md for details)
+3) Run the server (see ibor-server/README.md for details)
 ```
 cd ibor-server
 mvn -q clean package
 java -jar target/ibor-server-*.jar
 ```
-
 ---
 
 ## ER diagram (curated schema: ibor.*)
@@ -186,30 +195,6 @@ RAG (pgvector)
                        pgvector similarity                         LLM (OpenAI via LangChain4j)
                        (rag_chunks.embedding)                      Hybrid answers: SQL facts +
                                                                    RAG context from rag_chunks
-```
-
----
-
-## Useful scripts and files
-- docker-compose.yml: launches Postgres 16 with pgvector extension
-- docker/db/init/*.sql: schema, staging, loaders, helpers
-- docker/db/data/*.csv: sample inputs, with mapping in stg_mapping.json
-- load_all.sh: one-stop helper
- ```
-      ./load_all.sh
-      Usage: ./load_all.sh <init_infra|load_staging|load_main|full>
-
-      ./load_all.sh init_infra
-      Initializes schemas, helpers and loaders.
-
-      ./load_all.sh load_staging
-      Copies CSVs to staging tables (stg.*).
-
-      ./load_all.sh load_main
-      Runs ibor.run_all_loaders() to populate curated tables (ibor.*).
-
-      ./load_all.sh full
-      Runs init_infra, load_staging and load_main in sequence.
 ```
 ---
 

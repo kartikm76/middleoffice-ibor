@@ -9,8 +9,11 @@
 -- 3) Audit triggers
 \i docker/db/init/03_audit_trigger.sql
 
--- 4) Helpers (PIT/resolvers/FX/price)
+-- 4) Loaders (SCD2 + facts)
+\i docker/db/init/04_loaders.sql
+
+-- 5) Helpers (PIT/resolvers/FX/price)
 \i docker/db/init/05_helpers.sql
 
--- 5) Loaders (SCD2 + facts)
-\i docker/db/init/04_loaders.sql
+-- 6) Views
+\i docker/db/init/06_vw_instrument.sql
