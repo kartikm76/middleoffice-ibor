@@ -124,12 +124,10 @@ Positions (as-of snapshot)
 ```
 curl 'http://localhost:8080/api/positions?asOf=2025-01-03&portfolioCode=P-ALPHA&page=1&size=50' | jq
 ```
-
 Position Composition
 ```
 curl 'http://localhost:8080/api/positions/composition?asOf=2025-01-03&portfolioCode=P-ALPHA' | jq
 ```
-
 Trades (as-of snapshot)
 ```
 curl 'http://localhost:8080/api/trades?asOf=2025-01-03&portfolioCode=P-ALPHA&instrumentCode=EQ-IBM&page=1&size=50' | jq
@@ -139,7 +137,6 @@ Prices (as-of snapshot)
 ```
 curl 'http://localhost:8080/api/prices?instrumentCode=EQ-IBM&fromDate=2025-01-01&toDate=2025-01-03' | jq
 ```
-
 PnL (as-of snapshot)
 ```
 curl 'http://localhost:8080/api/pnl?portfolioCode=P-ALPHA&asOf=2025-01-03&prior=2025-01-01' | jq
