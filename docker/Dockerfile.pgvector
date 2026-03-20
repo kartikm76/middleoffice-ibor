@@ -1,0 +1,11 @@
+FROM postgres:16-alpine
+
+# Install build deps, compile pgvector, then clean up — all in one layer
+RUN apk add --no-cache --virtual .build-deps \
+        git make gcc musl-dev clang llvm \
+    && git clone --branch v0.8.0 --depth 1 https://github.com/pgvector/pgvector.git /tmp/pgvector \
+    && cd /tmp/pgvector \
+    && make \
+    && make install \
+    && rm -rf /tmp/pgvector \
+    && apk del .build-deps
