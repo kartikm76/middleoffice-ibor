@@ -1,3 +1,4 @@
 strategy_code,strategy_name,strategy_category,source_system,source_ref,ingest_batch_id
-STRAT-ALPHA,Alpha Strategy,LongOnly,SEED,ST001,B1
-STRAT-BETA,Beta Strategy,Macro,SEED,ST002,B1
+STRAT-ALPHA,Long/Short Equity Alpha,EQUITY,SEED,ST001,B2
+STRAT-MACRO,Global Macro,MACRO,SEED,ST002,B2
+STRAT-FI,Fixed Income,FIXED_INCOME,SEED,ST003,B2

@@ -1,2 +1,4 @@
 broker_code,broker_name,source_system,source_ref,ingest_batch_id
-BRK-ALPHA,Alpha Broker LLC,SEED,BR001,B1
+BRK-GS,Goldman Sachs PB,SEED,BR001,B2
+BRK-MS,Morgan Stanley PB,SEED,BR002,B2
+BRK-JPM,JPMorgan PB,SEED,BR003,B2

@@ -33,11 +33,17 @@ public class JodiPositionsRepository {
               ORDER BY valid_from DESC
               LIMIT 1
             ),
+            latest_snap AS (
+              SELECT MAX(ps.position_date) AS snap_date
+              FROM ibor.fact_position_snapshot ps
+              JOIN p ON ps.portfolio_vid = p.portfolio_vid
+              WHERE ps.position_date <= ?        -- 4
+            ),
             pos AS (
               SELECT ps.instrument_vid, SUM(ps.quantity) AS qty
               FROM ibor.fact_position_snapshot ps
               JOIN p ON ps.portfolio_vid = p.portfolio_vid
-              WHERE ps.position_date = ?         -- 4
+              JOIN latest_snap ON ps.position_date = latest_snap.snap_date
               GROUP BY ps.instrument_vid
             ),
             adj AS (

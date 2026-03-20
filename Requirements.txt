@@ -1,0 +1,301 @@
+IBOR Platform Requirements
+==========================
+Objective: Build an IBOR platform that should:
+1. Display transactions by an asset class
+2. Display Positions on those transaction (long / short)
+3. Display cash ladder (cash inflow/outflow) of next 7 days
+4. User should be able to select the position by Portfolio / Account
+
+
+=============================================================
+PRODUCT VISION & ROADMAP
+=============================================================
+
+Platform Name: TBD (domain discussion deferred — to revisit after Phase 1 is live)
+
+Platform Positioning:
+  Most firms buy Security Master, IBOR, and Backtesting as three separate $1M+ enterprise
+  systems. This platform delivers all three as one integrated, AI-native product.
+  Core philosophy: numbers/facts come from SQL, reasoning/narrative come from AI.
+
+Data Hierarchy (agreed model):
+  Fund (top level)
+   └── Portfolio  (investment strategy / mandate — the PM's view)
+         └── Account  (where assets are custodied / settled — the ops view)
+
+  - One Portfolio → Many Accounts (e.g. prime brokerage, custody, cash account)
+  - dim_account and dim_account_portfolio already exist in schema with SCD2
+  - dim_account_portfolio is a many-to-many mapping (flexible, supports edge cases)
+  - Current gap: JodiPositionsRepository does not filter by account_code yet
+  - Fix deferred to Phase 2 — Phase 1 demo uses single portfolio, no account filter needed
+
+
+=============================================================
+PHASE 1 — IBOR AI ANALYST (current focus)
+=============================================================
+
+Status: Backend complete. Pre-UI fixes required (see below). UI to be built next.
+
+-- What is DONE --
+
+  Architecture
+  - PostgreSQL 16 + pgvector schema (ibor.*, stg.*, rag_*) — fully loaded
+  - Spring Boot 3.5.5 REST API at :8080 (positions, prices, trades, analytics)
+  - FastAPI AI gateway at :8000 with two-stage Octopus fan-out architecture
+  - ETL pipeline: scripts/data_etl.sh full (init_infra → load_staging → load_main)
+  - scripts/2_data_bootstrap.sh wraps data_etl.sh with idempotency + verify step
+
+  AI / LLM
+  - LLM switched from OpenAI → Claude (claude-sonnet-4-6) via Anthropic SDK
+  - Two-LLM-call architecture: LLM #1 = intent parse (plan_query tool), LLM #2 = synthesis
+  - Octopus fan-out: explicit tickers → IBOR + market blast simultaneously;
+    implicit tickers → IBOR first, extract EQ- codes, then market fan-out
+  - External context tools via yfinance (asyncio.to_thread wrappers):
+      get_market_snapshot(ticker)  — price, volume, P/E, 52-week range, analyst target
+      get_news(ticker)             — latest 5 headlines with source + timestamp
+      get_earnings(ticker)         — next earnings date + EPS estimate vs trailing
+      get_macro_snapshot()         — S&P 500, VIX, 10Y yield
+
+  Market Data
+  - 201 instruments seeded: 121 equities (US + European), 25 bonds, 25 futures,
+    10 options, 7 FX, 10 indices, 3 ETFs
+  - 1,580 real price points from yfinance (8 dates across 2025-01-01 to 2026-03-20)
+  - 216 real FX rates (7 direct + 3 inverse pairs x 8 dates)
+  - Bond prices computed from real treasury yields (^IRX, ^FVX, ^TNX, ^TYX)
+    with issuer credit spreads (e.g. JPM +80bps, AAPL +30bps)
+
+  Database (ibor.* curated tables — current row counts)
+  - dim_instrument:          201
+  - dim_instrument_equity:   121
+  - dim_instrument_bond:      25
+  - dim_instrument_futures:   25
+  - dim_instrument_options:   10
+  - dim_portfolio_strategy:    1   (P-ALPHA linked to STRAT-ALPHA — was missing, now fixed)
+  - fact_price:             1,580
+  - fact_fx_rate:             216
+  - fact_position_snapshot:   204
+  - fact_trade:                61
+  - fact_cash_event:           12
+
+
+-- PRE-UI FIXES REQUIRED (must resolve before UI build) --
+
+  [P1-FIX-1]  CORS origin — gateway allows only localhost:4200, Vite runs on 5173
+    Problem:   FastAPI CORS middleware blocks requests from Vite dev server
+    Fix:       Add "http://localhost:5173" to allow_origins in main.py
+    File:      ai-gateway/src/ai_gateway/main.py line 42
+
+  [P1-FIX-2]  Three instruments have no price data — show $0 market value in UI
+    Affected:  EQ-PG  (P&G — yfinance DB lock during bulk download; single-fetch will work)
+               EQ-SQ  (Square/Block Inc — delisted from yfinance, ticker rebranded to XYZ)
+               FUT-VXM6 (VIX futures — contract discontinued on yfinance)
+    Fix:       Re-run gen_real_prices.py with single-ticker retry for PG;
+               remap EQ-SQ → XYZ or remove; use hardcoded fallback for FUT-VXM6
+    File:      /tmp/gen_real_prices.py + db/data/stg_price.csv
+
+  [P1-FIX-3]  analytics.* schema missing — two Spring Boot endpoints return 500
+    Affected:  GET /api/analytics/returns/portfolio
+               GET /api/analytics/returns/securities
+    Problem:   Code references analytics.returns_portfolio_daily and
+               analytics.holdings_daily which do not exist in any SQL init script
+    Fix:       Create db/init/07_analytics_schema.sql with those tables,
+               add to data_etl.sh init_infra, backfill computed rows from fact tables
+
+  [P1-FIX-4]  portfolioCode fallback missing — chat returns 500 when PM doesn't name portfolio
+    Problem:   LLM omits portfolioCode when user says "show my positions" (no name given)
+               → empty string passed → Spring Boot 500
+    Fix:       Default to "P-ALPHA" in _dispatch_ibor when portfolioCode arg is blank
+    File:      ai-gateway/src/ai_gateway/service/llm_service.py line 213
+
+  [P1-FIX-5]  Market ticker fan-out hard-capped at 5 — most equity positions get no context
+    Problem:   _extract_equity_tickers() caps at 5; portfolio has ~45 equities
+               so 40 positions get no live market data in portfolio-level chat answers
+    Fix:       Raise cap to 10 (safe for API latency) or make configurable in config.yaml
+    File:      ai-gateway/src/ai_gateway/service/llm_service.py line 336
+
+  [P1-FIX-6]  PositionDTO does not expose actual snap_date used in the query
+    Problem:   JodiPositionsRepository now uses latest-snapshot-on-or-before logic,
+               but the response JSON has no field indicating which date was actually used.
+               A UI date picker selecting 2026-03-20 silently serves 2026-03-19 data.
+    Fix:       Add snap_date field to PositionDTO; return it in API response;
+               AI synthesis prompt should mention it if different from asOf
+    Files:     ibor-server/src/main/java/com/kmakker/ibor/dto/PositionDTO.java
+               ibor-server/src/main/java/com/kmakker/ibor/jodi/JodiPositionsRepository.java
+
+
+  [P1-FIX-8]  Account-level filtering missing — Spring Boot queries ignore account_code
+    Problem:   JodiPositionsRepository filters by portfolio_vid only. The schema has
+               dim_account, dim_account_portfolio (many-to-many), and fact_trade.account_vid
+               — the data hierarchy is Portfolio -> Account -> Trade — but no API endpoint
+               or AI tool accepts account_code as a filter parameter.
+               This blocks multi-tenant use where a PM manages multiple accounts
+               (e.g. ACCT-PRIME, ACCT-CUSTODY) within one portfolio.
+    Schema:    fact_position_snapshot.portfolio_vid (positions at portfolio level)
+               fact_trade.account_vid (trades at account level)
+               dim_account_portfolio (account <-> portfolio many-to-many join with SCD2)
+               The join path is: account_code -> dim_account -> dim_account_portfolio
+               -> dim_portfolio -> fact_position_snapshot
+    Fix:       (1) Add optional accountCode param to GET /api/positions in Spring Boot
+               (2) Add account CTE to JodiPositionsRepository SQL that joins through
+                   dim_account_portfolio when accountCode is provided
+               (3) Expose accountCode in the AI tool definition (plan_query ibor_calls args)
+               (4) Pass it through _dispatch_ibor in llm_service.py
+    Files:     ibor-server/src/main/java/com/kmakker/ibor/jodi/JodiPositionsRepository.java
+               ibor-server/src/main/java/com/kmakker/ibor/controller/PositionController.java
+               ibor-server/src/main/java/com/kmakker/ibor/service/PositionService.java
+               ai-gateway/src/ai_gateway/service/llm_service.py (_PLAN_TOOL + _dispatch_ibor)
+
+  [P1-FIX-7]  RAG tables empty — rag_chunks / rag_documents have 0 rows
+    Impact:    Low for demo (AI works without RAG), but the schema and code paths exist
+               with no data, creating dead weight and potential confusion
+    Fix:       Decision needed — either populate with instrument/portfolio descriptions
+               for semantic search, or remove RAG code paths from Phase 1 scope entirely
+
+
+-- What still needs to be built --
+
+  1. UI (React + Vite SPA) — see UI TECHNOLOGY STACK section below
+
+  2. Rate Limiting
+     - Library: slowapi (FastAPI-native, decorator-based)
+     - Demo: in-memory backend, 10 requests/IP/hour on /analyst/chat
+     - Production: Redis backend (AWS ElastiCache)
+
+  3. AWS Hosting (minimum ~$15-20/month)
+     - Single EC2 t3.small: Spring Boot + FastAPI + PostgreSQL (not RDS)
+     - React UI: S3 + CloudFront (static export, essentially free)
+     - Domain: Route 53 + ACM for HTTPS (~$12/year) — mandatory for credibility
+     - Secrets: AWS Secrets Manager (Anthropic key, DB creds)
+     - Keep-alive cron: ping /health every 5 mins to prevent JVM cold start
+     - Swagger UI disabled in prod (/docs, /swagger-ui.html)
+
+  4. Demo / Go-to-Market
+     - LinkedIn post: short post + screen recording GIF of a real AI conversation
+       Post during a market event (earnings season, Fed week) for maximum reach
+     - Medium post: explain IBOR + AI analyst concept + live demo link
+       Include "what it got wrong" section — builds credibility through honesty
+     - One screenshot-worthy answer: not just narration, genuine insight
+       e.g. sector overweight + earnings week + macro regime = insight moment
+     - Platform URL must look like a product (not ec2-xxx.compute.amazonaws.com)
+
+  Estimated effort: 1-2 weekends to demo-ready
+
+
+=============================================================
+PHASE 2 — SECURITY MASTER
+=============================================================
+
+Status: Not started.
+
+Scope:
+  - Authoritative instrument reference data (event-driven, serverless)
+  - Corporate actions processing: splits, dividends, spinoffs, mergers
+  - SCD2 already in place on dim_instrument (valid_from, valid_to, is_current)
+  - Wire account_code filter through JodiPositionsRepository + API + AI tool definitions
+  - Multi-tenancy: partition data by fund_id/account_id at the data layer
+    (cheaper to build in now than retrofit later — enables SaaS revenue model)
+  - demoable at: yourplatform.com/security-master
+
+
+=============================================================
+PHASE 3 — BACKTESTING PLATFORM
+=============================================================
+
+Status: Not started.
+
+Scope:
+  - Complex strategy simulation (e.g. Iron Condor on 30B option ticks)
+  - NOT a live self-serve demo — too computationally heavy, too data-heavy
+  - Demo strategy: pre-run 5-10 interesting backtests, store results in DB,
+    let AI analyst narrate the output intelligently
+  - Simplified toy backtest (moving average crossover, 1 stock, 1yr daily data)
+    can run live in milliseconds for visitor interaction
+  - Full complex backtests shown via screen recording / Medium writeup
+  - demoable at: yourplatform.com/backtest
+
+
+=============================================================
+PHASE 4+ — ENTERPRISE PRODUCTION READINESS
+=============================================================
+
+  Data Ingestion Pipeline
+  - Kafka topics per asset class (already in original proposal)
+  - FTP/SFTP custodian file drops (BNY, State Street)
+  - FIX protocol for real-time trade feeds
+  - Bloomberg / Refinitiv connector for pricing and reference data
+
+  Reconciliation
+  - IBOR vs custodian position breaks (daily)
+  - Price validation: stale prices, outliers, missing prices
+  - Break reporting and workflow
+
+  Identity & Access Control
+  - SSO / SAML (Okta, Azure AD) — non-negotiable for enterprise
+  - Role-based access: PM (own portfolio), Risk Officer (all portfolios), Analyst (read-only)
+  - Audit trail: who asked what, when (regulatory requirement)
+
+  Compliance & Regulatory
+  - IBOR → ABOR reconciliation
+  - Exposure / concentration limit monitoring
+  - MiFID II / SEC transaction reporting
+  - SOC 2 Type II certification (required by most institutional buyers)
+
+  Operational Resilience
+  - Disaster recovery (RTO/RPO commitments)
+  - Encryption at rest and in transit
+  - Multi-region on AWS
+
+
+=============================================================
+UI TECHNOLOGY STACK (applies across all phases)
+=============================================================
+
+  Frontend:   React (Vite) — same codebase grows from demo to production
+  Components: Ant Design
+  Data Grid:  AG Grid (community tier → enterprise when needed)
+  Charts:     Recharts + TradingView Lightweight Charts
+  Hosting:    S3 + CloudFront (demo) → ECS Fargate + ALB (production)
+  Repo:       ui/ folder inside middleoffice-ibor monorepo (no separate repo yet)
+
+  Layout design (Phase 1 demo):
+  - Two-panel: portfolio snapshot (left) + AI chat (right) + data grid (bottom)
+  - Portfolio snapshot shows on load: fund name, AUM, as-of date, sector weights,
+    asset mix, date range available — enough context for users to form their questions
+  - AI introduces itself with capability disclosure, not scripted questions
+  - Data grid auto-populates with data relevant to the last AI answer
+  - No pre-canned clickable questions (kills credibility)
+  - Polite out-of-scope response when user asks beyond available data
+  - CORS: gateway must allow http://localhost:5173 (Vite default) + production origin
+
+
+=============================================================
+CURRENT TECHNICAL GAPS TRACKER
+=============================================================
+
+  Phase 1 — Pre-UI (must fix before UI build):
+  - [ ] P1-FIX-1: CORS allow_origins missing localhost:5173 (Vite port)
+  - [ ] P1-FIX-2: EQ-PG, EQ-SQ, FUT-VXM6 have no price data ($0 market value)
+  - [ ] P1-FIX-3: analytics.* schema missing — /api/analytics/returns/* returns 500
+  - [ ] P1-FIX-4: LLM omits portfolioCode when not stated → Spring Boot 500
+  - [ ] P1-FIX-5: Market ticker fan-out capped at 5 — raise to 10
+  - [ ] P1-FIX-6: PositionDTO missing snap_date — UI shows wrong as-of silently
+  - [ ] P1-FIX-7: RAG tables empty — decide: populate or remove from Phase 1 scope
+  - [ ] P1-FIX-8: account_code filter missing — Spring Boot positions ignore account hierarchy
+
+  Phase 1 — Post-UI:
+  - [ ] Rate limiting (slowapi, 10 req/IP/hour on /analyst/chat)
+  - [ ] AWS hosting + custom domain
+  - [ ] Demo recording + LinkedIn / Medium posts
+
+  Phase 2:
+  - [ ] account_code filter missing in JodiPositionsRepository
+  - [ ] account_code not passed through API or AI tool definitions
+  - [ ] Corporate actions not processed
+  - [ ] Multi-tenancy not implemented at data layer
+
+  Phase 3:
+  - [ ] Backtesting engine not built
+  - [ ] Pre-run backtest results not stored
+
+  Phase 4+:
+  - [ ] All enterprise items listed above

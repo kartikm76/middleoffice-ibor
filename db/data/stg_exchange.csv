@@ -1,3 +1,12 @@
 exchange_code,exchange_name,source_system,source_ref,ingest_batch_id
-XNYS,New York Stock Exchange,SEED,EX001,B1
-XNAS,NASDAQ,SEED,EX002,B1
+XNYS,New York Stock Exchange,SEED,EX001,B2
+XNAS,NASDAQ,SEED,EX002,B2
+XETR,Deutsche Boerse XETRA,SEED,EX003,B2
+XLON,London Stock Exchange,SEED,EX004,B2
+XCME,CME Group,SEED,EX005,B2
+XCBT,CBOT,SEED,EX006,B2
+XNYM,NYMEX,SEED,EX007,B2
+XCBO,CBOE,SEED,EX008,B2
+XAMS,Euronext Amsterdam,SEED,EX009,B2
+XPAR,Euronext Paris,SEED,EX010,B2
+XSWX,SIX Swiss Exchange,SEED,EX011,B2

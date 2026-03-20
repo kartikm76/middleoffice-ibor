@@ -2,9 +2,11 @@ ibor:
   api_base: http://localhost:8080/api
   verify_ssl: true
 
+anthropic:
+  model: claude-sonnet-4-6
+
 openai:
-  model: gpt-4o-mini
-  embedding_model: text-embedding-3-small
+  embedding_model: text-embedding-3-small  # still used for RAG embeddings
 
 database:
   dsn: postgresql://ibor:ibor@localhost:5432/ibor
