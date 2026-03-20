@@ -1,0 +1,29 @@
+from __future__ import annotations
+
+import os
+from pathlib import Path
+
+import yaml
+from dotenv import load_dotenv
+
+_root = Path(__file__).resolve().parents[3]  # ai-gateway/
+load_dotenv(_root / ".env")
+
+with open(_root / "config.yaml") as f:
+    _cfg = yaml.safe_load(f)
+
+
+class Settings:
+    """Loads non-secret settings from config.yaml.
+    Secrets (OPENAI_API_KEY, PG_DSN) must be set via environment variables or .env file.
+    Environment variables override config.yaml values for all fields.
+    """
+    structured_api_base: str = os.getenv("STRUCTURED_API_BASE", _cfg["ibor"]["api_base"])
+    verify_ssl: bool          = os.getenv("VERIFY_SSL", str(_cfg["ibor"]["verify_ssl"])).lower() == "true"
+    openai_model: str         = os.getenv("OPENAI_MODEL", _cfg["openai"]["model"])
+    openai_embedding_model: str = os.getenv("OPENAI_EMBEDDING_MODEL", _cfg["openai"]["embedding_model"])
+    pg_dsn: str               = os.getenv("PG_DSN", _cfg["database"]["dsn"])
+    openai_api_key: str       = os.getenv("OPENAI_API_KEY", "")
+
+
+settings = Settings()

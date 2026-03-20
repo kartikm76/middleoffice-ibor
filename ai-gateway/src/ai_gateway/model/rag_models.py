@@ -4,11 +4,10 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Dict, Optional
 
+
 @dataclass
 class RagDocument:
-    """
-    Represents a document in a RAG (Retrieval-Augmented Generation) system.
-    """
+    """A document stored in the RAG vector store (ibor.rag_documents)."""
     document_id: int
     source: str
     external_id: str
@@ -17,11 +16,10 @@ class RagDocument:
     created_at: datetime
     updated_at: datetime
 
+
 @dataclass
 class RagChunk:
-    """
-    Represents a chunk of text within a RAG (Retrieval-Augmented Generation) document.
-    """
+    """A text chunk belonging to a RagDocument (ibor.rag_chunks)."""
     chunk_id: int
     document_id: int
     chunk_index: int

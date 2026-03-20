@@ -7,13 +7,6 @@ spring:
     password: ${DB_PASSWORD:ibor}
   jooq:
     sql-dialect: POSTGRES
-  jpa:
-    hibernate:
-      ddl-auto: none   # keep schema from SQL; or "validate"
-    properties:
-      hibernate.dialect: org.hibernate.dialect.PostgreSQLDialect
-      hibernate.jdbc.time_zone: UTC
-    open-in-view: false
 openai:
   api-key: ${OPENAI_API_KEY:XXXX}
   baseUrl: ${OPENAI_BASE_URL:https://api.openai.com/v1}
@@ -29,12 +22,12 @@ management:
     web:
       exposure:
         include: health,info
-  endpoint:s:
+  endpoint:
     health:
-      show-details: always
+      show-details: when-authorized
   health:
     db:
-      enabled: true
+      enabled: false
 logging:
   level:
     com.kmakker.ibor.jodi: DEBUG

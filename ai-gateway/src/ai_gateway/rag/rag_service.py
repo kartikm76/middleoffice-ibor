@@ -31,8 +31,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Iterable, Tuple
 from datetime import datetime
 from openai import OpenAI  # pip install openai>=1.51
-from ai_gateway.infra.tracing import traced
-from ai_gateway.config import settings
+from ai_gateway.config.settings import settings
 
 @dataclass
 class RagHit:
@@ -53,7 +52,7 @@ class RagHit:
     metadata: Dict[str, Any]
 
 
-class RagAgent:
+class RagService:
     """RAG helper for ingesting documents and performing semantic search.
 
     Responsibilities:
@@ -74,6 +73,7 @@ class RagAgent:
             dsn: str | None = None,
             embed_model: str | None = None,
             embed_dim: int = 1536,
+            pool=None,
     ):
         """Construct a RagAgent.
 
@@ -81,15 +81,17 @@ class RagAgent:
             dsn: PostgreSQL DSN; defaults to settings.pg_dsn if omitted.
             embed_model: Embedding model name; defaults to settings.openai_embed_model.
             embed_dim: Expected embedding dimensionality; used for validation.
+            pool: Optional PgPool instance. If omitted, a singleton PgPool is created from dsn.
         """
+        from ai_gateway.config.db import PgPool, PgPoolConfig
         self.dsn = dsn or settings.pg_dsn
-        self.embed_model = embed_model or settings.openai_embed_model  # e.g., "text-embedding-3-small"
+        self.embed_model = embed_model or settings.openai_embed_model
         self.embed_dim = embed_dim
         self._client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+        self._pool = pool or PgPool(PgPoolConfig(dsn=self.dsn))
 
     # ---------------- Ingest ----------------
 
-    @traced("rag.ingest_text")
     def ingest_text(
             self,
             *,
@@ -123,7 +125,8 @@ class RagAgent:
         chunks = list(self._split(text, chunk_chars, overlap))
         vectors = self._embed_many(chunks)
 
-        with psycopg.connect(self.dsn, autocommit=True) as conn:
+        with self._pool.connection() as conn:
+            conn.autocommit = True
             did = self._upsert_document(conn, source, external_id, title, metadata or {})
             for i, (content, vec) in enumerate(zip(chunks, vectors)):
                 self._insert_chunk(conn, did, i, content, vec, {"ingestedAt": datetime.utcnow().isoformat()})
@@ -131,7 +134,6 @@ class RagAgent:
 
     # ---------------- Search ----------------
 
-    @traced("rag.search")
     def search(
             self,
             query: str,
@@ -163,7 +165,7 @@ class RagAgent:
         ORDER BY embedding <=> %s
         LIMIT %s
         """
-        with psycopg.connect(self.dsn) as conn:
+        with self._pool.connection() as conn:
             with conn.cursor() as cur:
                 cur.execute(sql, (vec, vec, top_k))
                 rows = cur.fetchall()
@@ -231,23 +233,37 @@ class RagAgent:
             raise ValueError(f"Embedding dim mismatch: expected {self.embed_dim}, got {len(vec)}")
         return vec
 
-    def _embed_many(self, chunks: List[str]) -> List[List[float]]:
-        """Create embeddings for many chunks in a single API call.
+    def _embed_many(self, chunks: List[str], batch_size: int = 50, max_retries: int = 3) -> List[List[float]]:
+        """Create embeddings in batches with exponential backoff retry.
+
+        Processes chunks in batches of `batch_size` to respect API limits.
+        Retries each batch up to `max_retries` times on failure.
 
         Args:
             chunks: List of text chunks to embed, in order.
+            batch_size: Max chunks per API call (default 50).
+            max_retries: Max retry attempts per batch on transient errors.
 
         Returns:
             List of embedding vectors in the same order as input.
-
-        Raises:
-            ValueError: If any returned vector has an unexpected dimension.
         """
-        em = self._client.embeddings.create(model=self.embed_model, input=chunks)
-        out = [d.embedding for d in em.data]
-        for v in out:
-            if len(v) != self.embed_dim:
-                raise ValueError(f"Embedding dim mismatch: expected {self.embed_dim}, got {len(v)}")
+        import time
+        out: List[List[float]] = []
+        for start in range(0, len(chunks), batch_size):
+            batch = chunks[start: start + batch_size]
+            for attempt in range(max_retries):
+                try:
+                    em = self._client.embeddings.create(model=self.embed_model, input=batch)
+                    vecs = [d.embedding for d in em.data]
+                    for v in vecs:
+                        if len(v) != self.embed_dim:
+                            raise ValueError(f"Embedding dim mismatch: expected {self.embed_dim}, got {len(v)}")
+                    out.extend(vecs)
+                    break
+                except Exception:
+                    if attempt == max_retries - 1:
+                        raise
+                    time.sleep(2 ** attempt)  # 1s, 2s, 4s backoff
         return out
 
     def _upsert_document(

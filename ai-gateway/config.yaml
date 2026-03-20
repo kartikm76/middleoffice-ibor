@@ -1,0 +1,13 @@
+ibor:
+  api_base: http://localhost:8080/api
+  verify_ssl: true
+
+openai:
+  model: gpt-4o-mini
+  embedding_model: text-embedding-3-small
+
+database:
+  dsn: postgresql://ibor:ibor@localhost:5432/ibor
+
+# Secrets (OPENAI_API_KEY, PG_DSN override) must be set via environment variables or .env file.
+# Never add secret values here.
