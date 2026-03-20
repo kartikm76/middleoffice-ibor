@@ -102,5 +102,4 @@ colima stop
 
 Keep this file handy to spin up the environment quickly whenever you need to demo or develop against the IBOR platform.
 
-API Key:
-REDACTED
+API Key: stored in ai-gateway/.env (never commit this file)
