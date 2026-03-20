@@ -224,6 +224,5 @@ class LlmService:
         return IborAnswer(
             question="",
             as_of=fallback_as_of,
-            portfolio_code=fallback_portfolio,
             gaps=[f"Unknown tool requested by model: '{name}'"],
         )
