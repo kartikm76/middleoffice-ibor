@@ -1,170 +1,162 @@
-# IBOR Hybrid Starter
-(Postgres + pgvector + Spring Boot + Python AI Gateway)
+# IBOR Platform
 
-## 1. Project Purpose
+Investment Book of Record — positions, prices, trades, and P&L served through deterministic REST APIs and an AI analyst interface.
 
-This repository provides a compact but realistic **Investment Book of Record (IBOR)** starter kit. It demonstrates how to:
+## Architecture
 
-- Load curated multi-asset-class data (instruments, trades, FX, prices, positions) into Postgres.
-- Expose **deterministic, reliable IBOR APIs** through Spring Boot.
-- Use a Python **AI Gateway** (FastAPI + OpenAI SDK) to expose an “AI Analyst” interface.
-- Keep **all numeric truth in SQL**, while allowing AI to summarize, explain, and answer questions.
-- Extend into RAG (pgvector) for document/notes retrieval when desired.
-
-**Principle:**
-> 1. Numbers and facts come from SQL \
-> 2. Reasoning and narrative come from AI.
-
-## 2. High-Level Architecture
 ```
-                   ┌────────────────────────┐
-                   │ UI / CLI / Tools       │
-                   │ (curl, Angular, etc.)  │
-                   └───────────┬────────────┘
-                               │ HTTP
-                               ▼
-                 ┌──────────────────────────────┐
-                 │ ai-gateway (FastAPI, Python) │
-                 │ - OpenAI SDK Agent           │
-                 │ - Structured Tools           │
-                 └─────────────┬────────────────┘
-                               │ HTTP
-                               ▼
-                 ┌──────────────────────────────┐
-                 │ ibor-server (Spring Boot)    │
-                 │ - Deterministic IBOR APIs    │
-                 │ - JDBC over curated schema   │
-                 └─────────────┬────────────────┘
-                               │ JDBC
-                               ▼
-                 ┌──────────────────────────────┐
-                 │ Postgres 16 + pgvector       │
-                 │ - ibor.* curated schema      │
-                 │ - stg.* staging tables       │
-                 │ - rag_* vector store         │
-                 └──────────────────────────────┘
+PostgreSQL 16 + pgvector
+       ↓
+ibor-server  (Spring Boot, Java 21)   — deterministic REST at :8080
+       ↓
+ai-gateway   (FastAPI, Python 3.13)   — AI analyst interface at :8000
 ```
+
 ---
-## 3. Project Structure
 
-    middleoffice-ibor/
-    ├ docker/
-    │  └ db/
-    │     ├ data/                 # Sample CSV data
-    │     └ init/                 # SQL schema, staging, loaders
-    │        ├ 01_main_schema.sql
-    │        ├ 02_staging_schema.sql
-    │        ├ 03_audit_trigger.sql
-    │        ├ 04_loaders.sql
-    │        ├ 05_helpers.sql
-    │        ├ 06_vw_instrument.sql
-    │        └ run_all.sql
-    ├ docker-compose.yml          # Postgres 16 + pgvector
-    ├ load_all.sh                 # Bootstrap schemas + staging + curated
-    │
-    ├ ibor-server/                # Spring Boot IBOR structured APIs
-    │  ├ controllers/             # positions, trades, prices, lineage
-    │  ├ services/
-    │  └ repositories/
-    │
-    ├ ai-gateway/                 # Python FastAPI + OpenAI SDK
-    │  ├ agents/
-    │  ├ routes/
-    │  ├ openai/
-    │  └ clients/
-    │
-    └ README.md
+## 1. PostgreSQL Setup
 
-## 4. Get Started
-4.1 Prerequisites
-```
-    1. Docker + docker-compose
-    2. Java 21+ (Spring Boot)
-    3. Python 3.13+ (recommended via uv)
-    4. Maven 3.9+
-    5. OpenAI API key    
-```
-4.2 Start Postgres Docker container (with pgvector)
-```
-    docker compose up -d   
-    Verify:
-        docker-compose ps
-        docker logs db | grep "database system is ready"
-```
-4.3 Initialize schemas, load staging, run loaders
-```
-    Option 1: Full setup
-        ./load_all.sh full
+**Prerequisites:** Docker + Colima (or Docker Desktop)
 
-    Option 2: Individual steps
-        ./load_all.sh init_infra    ** Creates all schemas, helpers, loaders
-        ./load_all.sh load_staging  ** Loads CSVs into stg.* tables
-        ./load_all.sh load_main     ** Runs curated loaders into ibor.*
-```
-4.4 Run the Spring Boot server
-```
-    cd ibor-server
-    
-    # Option A: auto-reload
-    ./mvnw spring-boot:run
+```bash
+# Start the database
+docker compose up -d
 
-    # Option B: package & run jar
-    ./mvnw -q clean package
-    java -jar target/ibor-server-*.jar
-```
-4.5 Run the AI Gateway
-```
-    cd ai-gateway
-    uv run uvicorn ai_gateway.app:app --host 127.0.0.1 --port 8000 --reload
-```
-## 5. Test the System
-5.1 Spring Boot Structured APIs
-
-Positions (as-of snapshot)
-```
-curl 'http://localhost:8080/api/positions?asOf=2025-01-03&portfolioCode=P-ALPHA&page=1&size=50' | jq
-```
-Position Composition
-```
-curl 'http://localhost:8080/api/positions/composition?asOf=2025-01-03&portfolioCode=P-ALPHA' | jq
-```
-Trades (as-of snapshot)
-```
-curl 'http://localhost:8080/api/trades?asOf=2025-01-03&portfolioCode=P-ALPHA&instrumentCode=EQ-IBM&page=1&size=50' | jq
+# Load schema and seed data
+./load_all.sh full
 ```
 
-Prices (as-of snapshot)
-```
-curl 'http://localhost:8080/api/prices?instrumentCode=EQ-IBM&fromDate=2025-01-01&toDate=2025-01-03' | jq
-```
-PnL (as-of snapshot)
-```
-curl 'http://localhost:8080/api/pnl?portfolioCode=P-ALPHA&asOf=2025-01-03&prior=2025-01-01' | jq
+The database (`ibor`) is created with user `ibor` / password `ibor` on port `5432`.
+
+Schema layers:
+- `ibor.*` — curated facts and dimensions (positions, prices, trades, instruments)
+- `stg.*` — staging tables for CSV ingest
+- `ibor.rag_documents`, `ibor.rag_chunks` — pgvector store for RAG
+
+---
+
+## 2. Spring Boot Service
+
+**Prerequisites:** Java 21, Maven
+
+```bash
+cd ibor-server
+mvn spring-boot:run
 ```
 
-5.2 Python AI Gateway (Analyst APIs)
+Starts on `http://localhost:8080`. Swagger UI: `http://localhost:8080/swagger-ui.html`
 
-Analyst → Positions
+**Key endpoints:**
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/positions?portfolioCode=P-ALPHA&asOf=2025-01-03` | All positions for a portfolio |
+| GET | `/api/positions/{portfolio}/{instrument}?asOf=...` | Position drilldown with trade history |
+| GET | `/api/prices/{instrumentCode}?from=...&to=...` | Price time series |
+| GET | `/actuator/health` | Health check |
+
+---
+
+## 3. AI Gateway
+
+**Prerequisites:** Python 3.13, [uv](https://docs.astral.sh/uv/)
+
+```bash
+cd ai-gateway
+
+# Copy and fill in secrets
+cp .env.example .env
+# Set OPENAI_API_KEY in .env
+
+# Start
+uv run uvicorn ai_gateway.main:app --host 127.0.0.1 --port 8000 --reload
 ```
-curl -s -X POST 'http://localhost:8000/agents/analyst/positions' \
-  -H 'Content-Type: application/json' \
-  -d '{"as_of":"2025-01-03","portfolio_code":"P-ALPHA"}' | jq
+
+Starts on `http://localhost:8000`. Swagger UI: `http://localhost:8000/docs`
+
+**Key endpoints** (all POST, return `IborAnswer` envelope):
+
+| Path | Description |
+|------|-------------|
+| `POST /analyst/positions` | Positions with market value aggregate |
+| `POST /analyst/trades` | Trade history for a portfolio + instrument |
+| `POST /analyst/prices` | Price series with min/max/last summary |
+| `POST /analyst/pnl` | P&L proxy: MV delta between two dates |
+| `POST /analyst/chat` | Natural language — AI picks the right tool and returns grounded data |
+| `GET /health` | Health check |
+
+**Example — positions:**
+```bash
+curl -X POST http://localhost:8000/analyst/positions \
+  -H "Content-Type: application/json" \
+  -d '{"portfolio_code":"P-ALPHA","as_of":"2025-01-03"}'
 ```
-Analyst → Trades
+
+**Example — chat:**
+```bash
+curl -X POST http://localhost:8000/analyst/chat \
+  -H "Content-Type: application/json" \
+  -d '{"question":"What are the positions in P-ALPHA as of 2025-01-03?"}'
 ```
-curl -s -X POST 'http://localhost:8000/agents/analyst/trades' \
-  -H 'Content-Type: application/json' \
-  -d '{"as_of":"2025-01-03","portfolio_code":"P-ALPHA","instrument_code":"EQ-IBM"}' | jq
+
+Every response is an `IborAnswer` with `data`, `summary`, `citations`, and `gaps` fields. The chat endpoint uses the same `IborAnswer` contract as all other endpoints — numbers always come from Spring Boot, never invented by the LLM.
+
+---
+
+## Project Structure
+
 ```
-Analyst → Prices
+middleoffice-ibor/
+├── docker-compose.yml
+├── docker/                    # Postgres + pgvector Dockerfile
+├── db/                        # SQL schema scripts (01–07) and seed CSVs
+├── load_all.sh                # Full ETL bootstrap
+├── ibor-server/               # Spring Boot service
+│   └── src/main/java/com/kmakker/ibor/
+└── ai-gateway/
+    ├── config.yaml            # Non-secret settings (model, API base, DSN)
+    ├── .env                   # Secrets (OPENAI_API_KEY) — never committed
+    └── src/ai_gateway/
+        ├── main.py            # FastAPI app entry point
+        ├── config/
+        │   ├── settings.py    # Loads config.yaml + .env
+        │   └── db.py          # PostgreSQL connection pool (PgPool)
+        ├── client/
+        │   └── ibor_client.py # HTTP client to Spring Boot (async httpx)
+        ├── service/
+        │   ├── ibor_service.py  # Aggregates data, returns IborAnswer
+        │   └── llm_agent.py     # OpenAI tool-calling loop
+        ├── controller/
+        │   ├── analyst.py     # REST + chat endpoints
+        │   └── health.py      # /health
+        ├── model/
+        │   ├── schemas.py     # IborAnswer, request models
+        │   └── rag_models.py  # RagDocument, RagChunk
+        └── rag/
+            ├── agent.py       # Embedding + pgvector search
+            ├── local_store.py # Postgres CRUD for RAG documents
+            └── sql.py         # RAG SQL statements
 ```
-curl -s -X POST 'http://localhost:8000/agents/analyst/prices' \
-  -H 'Content-Type: application/json' \
-  -d '{"instrument_code":"EQ-IBM","from_date":"2025-01-01","to_date":"2025-01-03"}' | jq
+
+---
+
+## Configuration
+
+`ai-gateway/config.yaml` — non-secret settings:
+```yaml
+ibor:
+  api_base: http://localhost:8080/api
+openai:
+  model: gpt-4o-mini
+  embedding_model: text-embedding-3-small
+database:
+  dsn: postgresql://ibor:ibor@localhost:5432/ibor
 ```
-Analyst → PnL
+
+`ai-gateway/.env` — secrets (not committed):
 ```
-curl -s -X POST 'http://localhost:8000/agents/analyst/pnl' \
-  -H 'Content-Type: application/json' \
-  -d '{"portfolio_code":"P-ALPHA","as_of":"2025-01-03","prior":"2025-01-01"}' | jq
+OPENAI_API_KEY=sk-...
+# Optional overrides:
+# PG_DSN=postgresql://...
+# STRUCTURED_API_BASE=http://...
 ```

@@ -296,8 +296,10 @@ CREATE TABLE IF NOT EXISTS ibor.fact_trade (
   created_at         TIMESTAMP NOT NULL DEFAULT now(),
   updated_at         TIMESTAMP NOT NULL DEFAULT now()
 );
-CREATE INDEX IF NOT EXISTS idx_trade_instr_date ON ibor.fact_trade (instrument_vid, trade_date);
-CREATE INDEX IF NOT EXISTS idx_trade_acct_date  ON ibor.fact_trade (account_vid, trade_date);
+CREATE INDEX IF NOT EXISTS idx_trade_instr_date      ON ibor.fact_trade (instrument_vid, trade_date);
+CREATE INDEX IF NOT EXISTS idx_trade_acct_date       ON ibor.fact_trade (account_vid, trade_date);
+-- Composite: covers drilldown by account + instrument + date in one scan
+CREATE INDEX IF NOT EXISTS idx_trade_acct_instr_date ON ibor.fact_trade (account_vid, instrument_vid, trade_date DESC);
 
 -- EOD position snapshots (derived)
 CREATE TABLE IF NOT EXISTS ibor.fact_position_snapshot (
@@ -309,7 +311,9 @@ CREATE TABLE IF NOT EXISTS ibor.fact_position_snapshot (
   updated_at      TIMESTAMP NOT NULL DEFAULT now(),
   PRIMARY KEY (portfolio_vid, instrument_vid, position_date)
 );
-CREATE INDEX IF NOT EXISTS idx_possnap_instr ON ibor.fact_position_snapshot (instrument_vid, position_date);
+CREATE INDEX IF NOT EXISTS idx_possnap_instr         ON ibor.fact_position_snapshot (instrument_vid, position_date);
+-- Composite: covers "all positions for a portfolio as of date" — the most common query
+CREATE INDEX IF NOT EXISTS idx_possnap_portfolio_date ON ibor.fact_position_snapshot (portfolio_vid, position_date DESC);
 
 -- Cash events (coupons/dividends/fees/etc.)
 CREATE TABLE IF NOT EXISTS ibor.fact_cash_event (

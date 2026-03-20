@@ -1,8 +1,8 @@
 from __future__ import annotations
 from typing import Any, Dict, List, Optional, Sequence
 from psycopg.types.json import Json
-from ai_gateway.infra.db import PgPool
-from ai_gateway.rag.models import RagChunk, RagDocument
+from ai_gateway.config.db import PgPool
+from ai_gateway.model.rag_models import RagChunk, RagDocument
 from ai_gateway.rag import sql as rag_sql
 
 class LocalRagStore:
