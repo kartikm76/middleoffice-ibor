@@ -21,6 +21,10 @@
       "table": "stg.portfolio",
       "columns": ["portfolio_code","portfolio_name","region","entitlement_group","valid_from","valid_to","status","source_system","source_ref","ingest_batch_id"]
     },
+    "stg_portfolio_strategy.csv": {
+      "table": "stg.portfolio_strategy",
+      "columns": ["portfolio_code","strategy_code","valid_from","valid_to","source_system","source_ref","ingest_batch_id"]
+    },
     "stg_account.csv": {
       "table": "stg.account",
       "columns": ["account_code","account_name","region","entitlement_group","valid_from","valid_to","status","source_system","source_ref","ingest_batch_id"]

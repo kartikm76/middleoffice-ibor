@@ -1,2 +1,4 @@
 counterparty_code,counterparty_name,country,source_system,source_ref,ingest_batch_id
-CP-OMEGA,Omega Capital Ltd,US,SEED,CP001,B1
+CP-GS,Goldman Sachs,US,SEED,CP001,B2
+CP-MS,Morgan Stanley,US,SEED,CP002,B2
+CP-JPM,JPMorgan,US,SEED,CP003,B2

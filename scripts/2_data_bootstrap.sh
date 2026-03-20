@@ -38,8 +38,7 @@ fi
 
 # ── Run ETL ────────────────────────────────────────────────────────────────────
 info "Running full ETL (schema → staging → curated)..."
-cd "$ROOT"
-bash load_all.sh full
+bash "$ROOT/scripts/data_etl.sh" full
 
 # ── Verify ────────────────────────────────────────────────────────────────────
 info "Verifying loaded data..."

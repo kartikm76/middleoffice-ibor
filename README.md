@@ -1,301 +1,327 @@
 # IBOR Platform — AI-Powered Investment Book of Record
 
+An Investment Book of Record (IBOR) is the authoritative, real-time view of a portfolio's
+holdings — positions, trades, prices, and P&L — used by portfolio managers to make
+investment decisions.
 
-## What This Platform Does
-
-An Investment Book of Record (IBOR) is the authoritative, real-time view of a portfolio's holdings — positions, trades, prices, and P&L — used by portfolio managers to make investment decisions.
-
-This platform goes one step further: it pairs deterministic financial data with an AI analyst so you can ask questions in plain English and get grounded, data-backed answers.
-
----
-
-## Asking Questions with AI
-
-The `/analyst/chat` endpoint is the centrepiece. You send a question, and the platform:
-
-1. **Understands your intent** — OpenAI reads the question and selects the right data tool (positions, trades, prices, or P&L)
-2. **Fetches real numbers** — the Spring Boot service queries PostgreSQL and returns exact figures
-3. **Writes a natural answer** — OpenAI narrates the data into plain English, using only the numbers retrieved (never invented)
-
-```
-You ask:  "What are the positions in P-ALPHA as of Feb 4, 2025?"
-
-Platform: → identifies tool: positions(P-ALPHA, 2025-02-04)
-          → fetches from DB: EQ-IBM short 10 @ $175.25, FUT-ESZ5 long 1 @ $5,205.25
-          → AI writes:
-
-"As of February 4, 2025, portfolio P-ALPHA holds two positions.
- It has a short position of 10 IBM shares (EQ-IBM) valued at -$1,752.50,
- and a long position in one ES December futures contract (FUT-ESZ5)
- valued at $260,262.50. Total portfolio market value is $258,510.00."
-```
-
-The AI never invents numbers — it only narrates data that came from the database.
+This platform pairs deterministic financial data with an AI analyst so you can ask questions
+in plain English and get grounded, data-backed answers enriched with live market context.
 
 ---
 
-## What You Can Ask
+## Architecture
 
-| Question type | Example |
-|---|---|
-| Positions | "What are the holdings in P-ALPHA as of January 3, 2025?" |
-| Trades | "Show me the trade history for IBM in P-ALPHA as of Feb 4" |
-| Prices | "What was the price of EQ-AAPL between Jan 1 and Feb 4, 2025?" |
-| P&L | "What is the P&L of P-ALPHA between Jan 3 and Feb 4, 2025?" |
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          IBOR AI Platform                                    │
+│                                                                               │
+│  ┌──────────────┐    ┌──────────────────────┐    ┌────────────────────────┐ │
+│  │  PostgreSQL  │    │   Spring Boot :8080   │    │  FastAPI AI Gateway   │ │
+│  │  16+pgvector │◄───│  Deterministic REST   │◄───│       :8000           │ │
+│  │              │    │  positions / prices   │    │  Octopus Orchestrator │ │
+│  │  ibor.*      │    │  trades / analytics   │    │                        │ │
+│  │  stg.*       │    └──────────────────────┘    └──────────┬─────────────┘ │
+│  │  rag_*       │                                            │               │
+│  └──────────────┘                                            │               │
+│                                                    ┌─────────▼─────────────┐ │
+│  ┌──────────────┐                                  │   Two-Stage Fan-Out   │ │
+│  │  yfinance    │◄─────────────────────────────────│   (Octopus Pattern)   │ │
+│  │  (Yahoo Fin) │    live market data              │                        │ │
+│  └──────────────┘                                  │  LLM #1: Intent Parse │ │
+│                                                    │  Stage 1: IBOR fetch  │ │
+│  ┌──────────────┐                                  │  Stage 2: Market fetch│ │
+│  │  Claude      │◄─────────────────────────────────│  LLM #2: Synthesis    │ │
+│  │  Sonnet 4.6  │    narration / synthesis         └───────────────────────┘ │
+│  └──────────────┘                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Core philosophy:** numbers/facts come from SQL, reasoning/narrative come from AI.
 
 ---
 
-## Try It Now
+## How the AI Analyst Works
 
-Start the platform (see [Quick Start](#quick-start) below), then open the Swagger UI:
+### The Octopus Fan-Out Pattern
+
+When a portfolio manager asks a question, the AI gateway runs a two-stage orchestration:
+
+**Stage 1 — Intent Parse (LLM call #1)**
+
+Claude reads the question and outputs a structured plan: which IBOR tools to call,
+any tickers explicitly named, and whether macro data is relevant.
+
+**Stage 2a — Explicit tickers: True Octopus blast**
+
+If the question names specific tickers (e.g. "compare NVDA and AMD"),
+all IBOR fetches and all market data fetches fire simultaneously via `asyncio.gather`:
 
 ```
-http://localhost:8000/docs
+Question: "Compare NVDA and AMD positions and latest news"
+                    │
+         ┌──────────▼──────────────────────────────────────────┐
+         │              asyncio.gather (all at once)            │
+         │  ┌─────────────┐  ┌──────────┐  ┌───────────────┐  │
+         │  │ IBOR:       │  │ Market:  │  │ Market:       │  │
+         │  │ positions() │  │ NVDA     │  │ AMD           │  │
+         │  │ prices()    │  │ snapshot │  │ snapshot      │  │
+         │  │             │  │ news     │  │ news          │  │
+         │  │             │  │ earnings │  │ earnings      │  │
+         │  └─────────────┘  └──────────┘  └───────────────┘  │
+         └──────────────────────────────────────────────────────┘
+                    │
+         ┌──────────▼──────────┐
+         │  LLM #2: Synthesis  │
+         │  (Claude Sonnet)    │
+         └─────────────────────┘
 ```
 
-Or use `curl`:
+**Stage 2b — Implicit tickers: Two-stage fan-out**
 
-```bash
-curl -X POST http://localhost:8000/analyst/chat \
-  -H "Content-Type: application/json" \
-  -d '{"question": "What are the positions in P-ALPHA as of 2025-02-04?"}'
+If the question is portfolio-level (e.g. "show me my positions"), IBOR data is fetched
+first, equity instrument codes (EQ-AAPL, EQ-NVDA...) are extracted and stripped to bare
+tickers, then market data is fetched in a second parallel blast:
+
+```
+Question: "What are my top equity positions?"
+                    │
+         ┌──────────▼──────────┐
+         │  Stage 1: IBOR      │  (asyncio.gather all IBOR calls)
+         │  positions(P-ALPHA) │
+         └──────────┬──────────┘
+                    │  extract EQ-* codes → [AAPL, NVDA, MSFT, AMD, JPM]
+         ┌──────────▼──────────────────────────────────┐
+         │  Stage 2: Market (asyncio.gather, up to 10) │
+         │  snapshot + news + earnings per ticker       │
+         │  + macro (VIX, S&P 500, 10Y yield)          │
+         └──────────┬──────────────────────────────────┘
+                    │
+         ┌──────────▼──────────┐
+         │  LLM #2: Synthesis  │
+         └─────────────────────┘
 ```
 
-Every response follows the same structure:
+### External Market Data (yfinance)
 
-```json
-{
-  "question": "What are the positions in P-ALPHA as of 2025-02-04?",
-  "as_of": "2025-02-04",
-  "summary": "As of February 4, 2025, portfolio P-ALPHA holds two positions...",
-  "data": { "positions": [...], "totalMarketValue": 258510.0, "count": 2 },
-  "source": "http://localhost:8080/api/positions?portfolioCode=P-ALPHA&asOf=2025-02-04",
-  "gaps": []
-}
-```
+Four async tools fetch live data from Yahoo Finance, all wrapped with `asyncio.to_thread`
+since yfinance is synchronous:
 
-- `summary` — the AI's plain-English narrative
-- `data` — the raw numbers, always present so you can verify
-- `source` — the exact Spring Boot URL that was called
-- `gaps` — any missing parameters or errors the AI flagged
+| Tool | What it returns |
+|------|----------------|
+| `get_market_snapshot(ticker)` | Price, change%, volume, market cap, P/E, 52-week range, analyst target & rating |
+| `get_news(ticker)` | Latest 5 headlines with source and timestamp |
+| `get_earnings(ticker)` | Next earnings date, forward EPS estimate, trailing EPS |
+| `get_macro_snapshot()` | S&P 500 level, VIX, US 10-year Treasury yield |
+
+### Synthesis
+
+Claude Sonnet 4.6 combines IBOR facts + market context into analyst-grade prose:
+- IBOR numbers are ground truth — never rounded, estimated, or invented
+- Market data adds intelligence (price momentum, news catalysts, earnings risk)
+- Response is 4–8 sentences of flowing prose, no bullet points
+- Surfaces one key risk or opportunity the PM should act on
 
 ---
 
+## Market Data in the Database
+
+Prices in the IBOR are real historical data downloaded from Yahoo Finance, not synthetic:
+
+- **201 instruments**: 121 equities (US mega-cap + European), 25 bonds, 25 futures,
+  10 options, 7 FX pairs, 10 indices, 3 ETFs
+- **1,580 price rows** across 8 dates (2025-01-02 to 2026-03-20)
+- **216 FX rate rows** (7 direct + 3 inverse pairs, same 8 dates)
+- **Bond prices** computed from real treasury yields (^IRX, ^FVX, ^TNX, ^TYX) using
+  standard bond pricing formula with issuer credit spreads
+
+US equities include: AAPL, MSFT, NVDA, GOOGL, META, AMZN, TSLA, JPM, BAC, GS, JNJ,
+UNH, XOM, CVX, BA, SPY, QQQ, GLD, TLT, and 80+ more.
+
+European equities include: SAP (XETR), ASML (XAMS), LVMH (XPAR), NESN (XSWX),
+SHEL (XLON), AZN (XLON), and more.
+
+London-listed stocks are stored in GBP (converted from GBX pence at fetch time).
+Swiss stocks (NESN, ROG, NOVN) are stored in CHF.
+
 ---
 
-## Technical Details
-
-### Architecture
-
-Three tiers. Numbers flow up from PostgreSQL; questions flow down from the user.
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  User / Swagger UI                                          │
-│  POST /analyst/chat  {"question": "..."}                    │
-└────────────────────────────┬────────────────────────────────┘
-                             │
-┌────────────────────────────▼────────────────────────────────┐
-│  ai-gateway  (FastAPI · Python 3.13 · :8000)                │
-│                                                             │
-│  controller/analyst.py                                      │
-│       │                    │                                │
-│       ▼                    ▼                                │
-│  service/ibor_service  service/llm_service                  │
-│  (raw data only)       (OpenAI orchestration)               │
-│       │                    │                                │
-│       │          Step 1: tool selection → which endpoint?   │
-│       │          Step 2: narration → write plain English    │
-│       │                    │                                │
-│  repository/ibor_repository.py  (async httpx)               │
-└────────────────────────────┬────────────────────────────────┘
-                             │  HTTP
-┌────────────────────────────▼────────────────────────────────┐
-│  ibor-server  (Spring Boot 3.5 · Java 21 · :8080)           │
-│                                                             │
-│  PositionController → PositionService → jOOQ Repository     │
-│  PriceController   → PriceService    → jOOQ Repository      │
-│  TransactionLineageController → ...                         │
-└────────────────────────────┬────────────────────────────────┘
-                             │  SQL
-┌────────────────────────────▼────────────────────────────────┐
-│  PostgreSQL 16 + pgvector  (:5432)                          │
-│                                                             │
-│  ibor.*  — curated facts & dimensions (SCD2)               │
-│  stg.*   — staging tables for CSV ingest                   │
-│  rag_*   — pgvector embeddings for semantic search          │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### Two-Step LLM Flow (Chat Endpoint)
-
-```
-User question
-     │
-     ▼
-[Step 1 — Tool Selection]
-OpenAI receives the question + tool definitions
-Responds with: call positions(portfolioCode=P-ALPHA, asOf=2025-02-04)
-     │
-     ▼
-IborService.positions()  →  IborRepository  →  Spring Boot  →  PostgreSQL
-Returns IborAnswer with exact market values, quantities, prices
-     │
-     ▼
-[Step 2 — Narration]
-OpenAI receives: {question, as_of, data: {...}}
-Responds with: natural language summary (uses only the numbers in data)
-     │
-     ▼
-IborAnswer returned to user (summary + data + source URL)
-```
-
-### REST Endpoints (ai-gateway :8000)
-
-| Method | Path | Input | Description |
-|--------|------|-------|-------------|
-| POST | `/analyst/positions` | `portfolio_code`, `as_of` | Positions with total market value |
-| POST | `/analyst/trades` | `portfolio_code`, `instrument_code`, `as_of` | Trade history |
-| POST | `/analyst/prices` | `instrument_code`, `from_date`, `to_date` | Price series with min/max/last |
-| POST | `/analyst/pnl` | `portfolio_code`, `as_of`, `prior` | P&L: MV delta between two dates |
-| POST | `/analyst/chat` | `question` (free text) | AI analyst — natural language |
-| GET | `/health` | — | Health check |
-
-### REST Endpoints (ibor-server :8080)
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/positions` | Portfolio positions as-of a date |
-| GET | `/api/positions/{portfolio}/{instrument}` | Position drilldown with trade history |
-| GET | `/api/prices/{instrumentCode}` | Price time series |
-| GET | `/api/analytics/*` | Brinson attribution, returns |
-| GET | `/actuator/health` | Health check |
-
-Swagger UI: `http://localhost:8080/swagger-ui.html`
-
-### Project Structure
-
-```
-middleoffice-ibor/
-├── docker-compose.yml              # PostgreSQL 16 + pgvector
-├── db/
-│   ├── init/                       # SQL schema scripts (01–07)
-│   └── data/                       # Seed CSV files
-├── load_all.sh                     # Full ETL bootstrap (schema → staging → curated)
-├── start.sh                        # One-command startup: Colima → DB → Java → Python
-├── test.sh                         # Smoke test: curl all endpoints
-│
-├── ibor-server/                    # Spring Boot service
-│   └── src/main/java/com/kmakker/ibor/
-│       ├── controller/             # REST controllers
-│       ├── service/                # Business logic
-│       └── repository/             # jOOQ data access
-│
-└── ai-gateway/                     # FastAPI AI gateway
-    ├── config.yaml                 # Non-secret settings
-    ├── .env                        # OPENAI_API_KEY (never committed)
-    ├── .env.example                # Template
-    └── src/ai_gateway/
-        ├── main.py                 # FastAPI app entry point
-        ├── config/
-        │   ├── settings.py         # Loads config.yaml + .env
-        │   └── db.py               # PostgreSQL connection pool
-        ├── repository/
-        │   └── ibor_repository.py  # Async HTTP client to Spring Boot
-        ├── service/
-        │   ├── ibor_service.py     # Data aggregation, returns IborAnswer
-        │   └── llm_service.py      # OpenAI two-step orchestration
-        ├── controller/
-        │   ├── analyst.py          # All endpoints (REST + chat)
-        │   └── health.py           # /health
-        ├── model/
-        │   ├── schemas.py          # IborAnswer, all request models
-        │   └── rag_models.py       # RagDocument, RagChunk
-        └── rag/
-            ├── rag_service.py      # Embedding + pgvector semantic search
-            ├── local_store.py      # Postgres CRUD for RAG documents
-            └── sql.py              # RAG SQL statements
-```
-
-### Database Schema
-
-| Schema | Purpose |
-|--------|---------|
-| `ibor.*` | Curated facts and dimensions — positions, prices, trades, instruments (SCD2) |
-| `stg.*` | Staging tables — raw CSV ingest before transformation |
-| `ibor.rag_documents`, `ibor.rag_chunks` | pgvector store for RAG semantic search |
-
-Key tables: `dim_instrument`, `dim_portfolio`, `fact_position_snapshot`, `fact_price`, `fact_trade`
-
-### Tech Stack
+## Stack
 
 | Layer | Technology |
 |-------|-----------|
-| Database | PostgreSQL 16, pgvector |
-| Java service | Java 21, Spring Boot 3.5, jOOQ 3.18, Lombok |
-| Python gateway | Python 3.13, FastAPI, Pydantic 2, httpx, OpenAI SDK |
-| Package manager | uv (Python), Maven (Java) |
-| Infrastructure | Docker, Colima |
+| Database | PostgreSQL 16 + pgvector |
+| REST API | Spring Boot 3.5.5, Java 23, jOOQ 3.18.7 |
+| AI Gateway | FastAPI 0.119+, Python 3.13, Anthropic SDK |
+| LLM | Claude Sonnet 4.6 (claude-sonnet-4-6) |
+| Market Data | yfinance 0.2.50+ (Yahoo Finance) |
+| Async | asyncio.gather + asyncio.to_thread |
 
 ---
 
 ## Quick Start
 
-### Prerequisites
-
-- [Colima](https://github.com/abiosoft/colima) or Docker Desktop
-- Java 21+
-- Python 3.13+, [uv](https://docs.astral.sh/uv/)
-- An OpenAI API key
-
-### 1. Configure secrets
-
 ```bash
-cp ai-gateway/.env.example ai-gateway/.env
-# Edit ai-gateway/.env and set OPENAI_API_KEY=sk-...
+# 1. Start infra (Colima + PostgreSQL container)
+./scripts/1_infra_start.sh
+
+# 2. Load schema + all 23 CSVs + promote to ibor.* tables
+./scripts/2_data_bootstrap.sh
+
+# 3. Start Spring Boot + AI Gateway
+./scripts/3_services_start.sh
+
+# 4. Verify everything works
+./scripts/4_smoke_test.sh
 ```
 
-### 2. Start everything
+Then open:
+- Spring Boot Swagger: http://localhost:8080/swagger-ui.html
+- AI Gateway docs:    http://localhost:8000/docs
+
+---
+
+## API Endpoints
+
+### Spring Boot (:8080/api)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/positions` | Positions as-of date (uses latest snapshot on-or-before) |
+| GET | `/api/positions/{portfolio}/{instrument}` | Trade drilldown for one instrument |
+| GET | `/api/positions/composition` | Portfolio composition breakdown |
+| GET | `/api/prices/{instrumentCode}` | Price time series |
+| GET | `/api/instruments/{instrumentCode}` | Instrument master data |
+| GET | `/api/analytics/attribution/brinson/daily` | Brinson attribution (requires analytics schema) |
+| GET | `/api/analytics/returns/portfolio` | Portfolio TWRR (requires analytics schema) |
+
+### AI Gateway (:8000/analyst)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/analyst/positions` | Deterministic positions proxy |
+| POST | `/analyst/prices` | Deterministic price proxy |
+| POST | `/analyst/trades` | Deterministic trades proxy |
+| POST | `/analyst/pnl` | P&L delta between two dates |
+| POST | `/analyst/chat` | AI analyst — Octopus fan-out + Claude narration |
+| GET | `/health` | Health check |
+
+### Chat request format
 
 ```bash
-./start.sh
+curl -X POST http://localhost:8000/analyst/chat \
+  -H "Content-Type: application/json" \
+  -d '{"question": "What are my top positions in P-ALPHA and how is the market looking?"}'
 ```
 
-This script starts Colima, PostgreSQL, loads the schema and seed data, starts the Spring Boot service, and starts the Python gateway — with health checks at each step.
+Response structure:
+```json
+{
+  "question": "...",
+  "as_of": "2026-03-20",
+  "summary": "P-ALPHA carries a total market value of $34.5M ...",
+  "data": {
+    "ibor": { "positions": [...], "totalMarketValue": 34524750.05 },
+    "market": {
+      "by_ticker": {
+        "AAPL": { "snapshot": {...}, "news": {...}, "earnings": {...} }
+      },
+      "macro": { "sp500": 6506.48, "vix": 26.78, "us_10y_yield": 4.391 }
+    }
+  },
+  "gaps": []
+}
+```
 
-### 3. Verify
+- `summary` — Claude's analyst-grade narrative combining IBOR + market context
+- `data.ibor` — raw numbers from the database (ground truth)
+- `data.market` — live data from Yahoo Finance fetched at query time
+- `gaps` — any tools that failed or data that was unavailable
+
+---
+
+## Database Schema
+
+Three schemas in PostgreSQL:
+
+**`ibor.*`** — Curated facts and dimensions (ground truth)
+- SCD2 on instruments, portfolios, accounts: `valid_from`, `valid_to`, `is_current`
+- Surrogate keys (`*_vid`) used internally; business keys used in APIs
+- Key tables: `dim_instrument`, `dim_portfolio`, `dim_account`, `dim_account_portfolio`,
+  `fact_price`, `fact_fx_rate`, `fact_position_snapshot`, `fact_trade`, `fact_cash_event`
+
+**`stg.*`** — Staging tables (CSV landing zone, cleared after each ETL run)
+
+**`rag_*`** — pgvector embeddings for semantic RAG (populated in Phase 2)
+
+**Data hierarchy:**
+```
+dim_portfolio  (P-ALPHA)
+      └── dim_account_portfolio  (many-to-many join)
+            └── dim_account  (ACCT-PRIME, ACCT-CUSTODY)
+```
+
+Positions are stored at portfolio level (`fact_position_snapshot.portfolio_vid`).
+Trades are stored at account level (`fact_trade.account_vid`).
+Account-level position filtering is a Phase 2 item.
+
+---
+
+## Configuration
+
+**AI Gateway** (`ai-gateway/`):
+- `config.yaml` — non-secret config (model name, API base URL, etc.)
+- `.env` — secrets: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` (for RAG embeddings)
+
+**Spring Boot** (`ibor-server/`):
+- `src/main/resources/application.yml` — DB connection, server port
+- `src/main/resources/application-test.yml` — test overrides
+
+---
+
+## ETL Pipeline
 
 ```bash
-./test.sh
+# Full reload from scratch
+./scripts/data_etl.sh full
+
+# Individual phases
+./scripts/data_etl.sh init_infra     # schema only
+./scripts/data_etl.sh load_staging   # CSVs -> stg.*
+./scripts/data_etl.sh load_main      # stg.* -> ibor.*
 ```
 
-Runs curl against every endpoint and prints pass/fail.
+See `scripts/README.md` for the full CSV-to-table mapping.
 
-### Manual startup (alternative)
+---
 
-```bash
-# Database
-colima start
-docker-compose up -d
-./load_all.sh full
+## Project Structure
 
-# Spring Boot
-cd ibor-server
-JAVA_HOME=$(/usr/libexec/java_home -v 23) mvn spring-boot:run
-
-# Python gateway (new terminal)
-cd ai-gateway
-uv run uvicorn ai_gateway.main:app --host 127.0.0.1 --port 8000 --reload
 ```
-
-### Seed Data
-
-The platform ships with sample data for portfolio **P-ALPHA**:
-
-| Instrument | Type | Dates available |
-|-----------|------|----------------|
-| EQ-IBM | Equity | 2025-01-03, 2025-02-04 |
-| EQ-AAPL | Equity | 2025-01-03 |
-| FUT-ESZ5 | Futures | 2025-02-04 |
-| BOND-UST10 | Bond | 2025-01-03 |
-| OPT-AAPL-20250117-150C | Option | 2025-01-03 |
+middleoffice-ibor/
+├── ibor-server/          Spring Boot REST API (Java 23, Maven, jOOQ)
+├── ai-gateway/           FastAPI AI gateway (Python 3.13, uv)
+│   ├── src/ai_gateway/
+│   │   ├── service/
+│   │   │   ├── llm_service.py     Octopus orchestrator (two-stage fan-out)
+│   │   │   ├── market_tools.py    yfinance async wrappers
+│   │   │   └── ibor_service.py    IBOR data fetcher + IborAnswer builder
+│   │   ├── controller/
+│   │   │   ├── analyst.py         REST routes
+│   │   │   └── health.py
+│   │   ├── repository/
+│   │   │   └── ibor_repository.py httpx client for Spring Boot
+│   │   ├── config/settings.py     YAML + dotenv loader
+│   │   └── model/schemas.py       IborAnswer + request/response models
+│   ├── config.yaml
+│   └── .env
+├── db/
+│   ├── init/             SQL scripts 01-06 (schema, loaders, helpers, views)
+│   └── data/             23 CSV seed files + stg_mapping.json
+├── scripts/
+│   ├── data_etl.sh       ETL entry point (replaces load_all.sh)
+│   ├── 1_infra_start.sh
+│   ├── 2_data_bootstrap.sh
+│   ├── 3_services_start.sh
+│   └── 4_smoke_test.sh
+└── docker-compose.yml    PostgreSQL 16 + pgvector container
+```

@@ -4,24 +4,31 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from openai import AsyncOpenAI
+from anthropic import AsyncAnthropic
 
 from ai_gateway.config.settings import settings
 from ai_gateway.repository.ibor_repository import IborRepository
 from ai_gateway.service.ibor_service import IborService
 from ai_gateway.service.llm_service import LlmService
+from ai_gateway.service.market_tools import MarketTools
 from ai_gateway.controller.health import router as health_router
 from ai_gateway.controller.analyst import make_analyst_router
 
 
 def create_app() -> FastAPI:
-    if not settings.openai_api_key:
-        raise RuntimeError("OPENAI_API_KEY is not configured. Check ai-gateway/.env.")
+    if not settings.anthropic_api_key:
+        raise RuntimeError("ANTHROPIC_API_KEY is not configured. Check ai-gateway/.env.")
 
     ibor_repository = IborRepository(base_url=settings.structured_api_base)
     service = IborService(client=ibor_repository)
-    openai_client = AsyncOpenAI(api_key=settings.openai_api_key)
-    llm_service = LlmService(openai_client=openai_client, service=service, model=settings.openai_model)
+    anthropic_client = AsyncAnthropic(api_key=settings.anthropic_api_key)
+    market_tools = MarketTools()
+    llm_service = LlmService(
+        anthropic_client=anthropic_client,
+        service=service,
+        market_tools=market_tools,
+        model=settings.anthropic_model,
+    )
 
     @asynccontextmanager
     async def lifespan(_app: FastAPI):

@@ -1,0 +1,117 @@
+from __future__ import annotations
+
+import asyncio
+import logging
+from typing import Any, Dict, List, Optional, Tuple
+
+import yfinance as yf
+
+log = logging.getLogger(__name__)
+
+_MACRO_TICKERS: Dict[str, str] = {
+    "sp500": "^GSPC",
+    "vix": "^VIX",
+    "us_10y_yield": "^TNX",
+}
+
+
+class MarketTools:
+    """Async wrappers around yfinance for external market context.
+
+    All methods use asyncio.to_thread (yfinance is synchronous).
+    All failures are caught and returned as partial data — never raises.
+    """
+
+    async def get_market_snapshot(self, ticker: str) -> Dict[str, Any]:
+        """Current price, change%, volume, fundamentals, and analyst rating."""
+        return await asyncio.to_thread(self._snapshot_sync, ticker)
+
+    async def get_news(self, ticker: str) -> Dict[str, Any]:
+        """Last 5 news headlines for a ticker."""
+        return await asyncio.to_thread(self._news_sync, ticker)
+
+    async def get_earnings(self, ticker: str) -> Dict[str, Any]:
+        """Next earnings date + EPS estimates."""
+        return await asyncio.to_thread(self._earnings_sync, ticker)
+
+    async def get_macro_snapshot(self) -> Dict[str, Any]:
+        """S&P 500, VIX, and 10Y yield — always fetched for portfolio-level questions."""
+        return await asyncio.to_thread(self._macro_sync)
+
+    # --- synchronous implementations (run in thread pool) ---
+
+    def _snapshot_sync(self, ticker: str) -> Dict[str, Any]:
+        try:
+            info = yf.Ticker(ticker).info or {}
+            return {
+                "ticker": ticker,
+                "price": info.get("currentPrice") or info.get("regularMarketPrice"),
+                "change_pct": info.get("regularMarketChangePercent"),
+                "volume": info.get("regularMarketVolume"),
+                "avg_volume_30d": info.get("averageVolume"),
+                "market_cap": info.get("marketCap"),
+                "pe_ratio": info.get("trailingPE"),
+                "week52_high": info.get("fiftyTwoWeekHigh"),
+                "week52_low": info.get("fiftyTwoWeekLow"),
+                "analyst_target_price": info.get("targetMeanPrice"),
+                "analyst_rating": info.get("recommendationKey"),
+            }
+        except Exception as exc:
+            log.warning("snapshot failed %s: %s", ticker, exc)
+            return {"ticker": ticker, "error": str(exc)}
+
+    def _news_sync(self, ticker: str) -> Dict[str, Any]:
+        try:
+            raw_news = yf.Ticker(ticker).news or []
+            headlines = []
+            for item in raw_news[:5]:
+                # yfinance >= 0.2.50 nests content under "content" key
+                content = item.get("content", item)
+                provider = content.get("provider", {})
+                headlines.append({
+                    "title": content.get("title", ""),
+                    "published": content.get("pubDate", content.get("providerPublishTime", "")),
+                    "source": provider.get("displayName", "") if isinstance(provider, dict) else "",
+                })
+            return {"ticker": ticker, "headlines": headlines}
+        except Exception as exc:
+            log.warning("news failed %s: %s", ticker, exc)
+            return {"ticker": ticker, "headlines": [], "error": str(exc)}
+
+    def _earnings_sync(self, ticker: str) -> Dict[str, Any]:
+        try:
+            t = yf.Ticker(ticker)
+            info = t.info or {}
+            earnings_date: Optional[str] = None
+            try:
+                cal = t.calendar
+                if cal is not None:
+                    if isinstance(cal, dict):
+                        ed = cal.get("Earnings Date")
+                        if ed:
+                            earnings_date = str(ed[0]) if isinstance(ed, list) else str(ed)
+                    elif hasattr(cal, "loc") and "Earnings Date" in cal.index:
+                        ed = cal.loc["Earnings Date"]
+                        earnings_date = str(ed.iloc[0]) if hasattr(ed, "iloc") else str(ed)
+            except Exception:
+                pass
+            return {
+                "ticker": ticker,
+                "next_earnings_date": earnings_date,
+                "eps_estimate_forward": info.get("forwardEps"),
+                "eps_trailing": info.get("trailingEps"),
+            }
+        except Exception as exc:
+            log.warning("earnings failed %s: %s", ticker, exc)
+            return {"ticker": ticker, "error": str(exc)}
+
+    def _macro_sync(self) -> Dict[str, Any]:
+        result: Dict[str, Any] = {}
+        for name, sym in _MACRO_TICKERS.items():
+            try:
+                info = yf.Ticker(sym).info or {}
+                result[name] = info.get("regularMarketPrice") or info.get("currentPrice")
+            except Exception as exc:
+                log.warning("macro %s failed: %s", sym, exc)
+                result[name] = None
+        return result

@@ -1,3 +1,4 @@
 price_source_code,price_source_name,source_system,source_ref,ingest_batch_id
-BBG,Bloomberg,SEED,PS001,B1
-RFT,Refinitiv,SEED,PS002,B1
+BBG,Bloomberg,SEED,PS001,B2
+RFT,Refinitiv,SEED,PS002,B2
+YHO,Yahoo Finance,SEED,PS003,B2

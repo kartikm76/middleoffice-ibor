@@ -10,3 +10,7 @@
 
 # Virtual environment
 /ai_gateway/.venv/
+
+# Secrets — never commit
+**/.env
+ai-gateway/.env
