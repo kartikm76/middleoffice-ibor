@@ -111,6 +111,6 @@ SELECT
     (embedding <=> %(query_embedding)s)AS distance
 FROM ibor.rag_chunks
 WHERE document_id = %(document_id)s
-ORDER BY encoding <=> %(query_embedding)s
+ORDER BY embedding <=> %(query_embedding)s
 LIMIT %(limit)s;
 """

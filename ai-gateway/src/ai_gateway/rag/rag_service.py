@@ -28,7 +28,7 @@ from __future__ import annotations
 import os
 import psycopg
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Iterable, Tuple
+from typing import Any, Dict, List, Optional, Iterable
 from datetime import datetime
 from openai import OpenAI  # pip install openai>=1.51
 from ai_gateway.config.settings import settings
