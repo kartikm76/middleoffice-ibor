@@ -1,5 +1,6 @@
 # IBOR Platform — AI-Powered Investment Book of Record
 
+
 ## What This Platform Does
 
 An Investment Book of Record (IBOR) is the authoritative, real-time view of a portfolio's holdings — positions, trades, prices, and P&L — used by portfolio managers to make investment decisions.
@@ -177,8 +178,9 @@ Swagger UI: `http://localhost:8080/swagger-ui.html`
 ```
 middleoffice-ibor/
 ├── docker-compose.yml              # PostgreSQL 16 + pgvector
-├── docker/db/init/                 # SQL schema scripts (01–07)
-├── docker/db/data/                 # Seed CSV files
+├── db/
+│   ├── init/                       # SQL schema scripts (01–07)
+│   └── data/                       # Seed CSV files
 ├── load_all.sh                     # Full ETL bootstrap (schema → staging → curated)
 ├── start.sh                        # One-command startup: Colima → DB → Java → Python
 ├── test.sh                         # Smoke test: curl all endpoints
