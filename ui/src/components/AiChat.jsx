@@ -13,13 +13,14 @@ function ThinkingDots() {
 
 function MessageBubble({ message }) {
   const isUser = message.role === 'user'
-  let content = message.content
 
-  // If content is an array of bullets, render as bullets
-  if (!isUser && Array.isArray(content)) {
-    content = content.map((bullet, i) => (
-      <div key={i} style={{ marginBottom: i < content.length - 1 ? '6px' : '0' }}>
-        {bullet}
+  // Format assistant message with proper structure
+  let content = message.content
+  if (!isUser && typeof content === 'string') {
+    // Split into paragraphs for readability
+    content = content.split('\n\n').map((para, i) => (
+      <div key={i} style={{ marginBottom: i > 0 ? '8px' : '0' }}>
+        {para}
       </div>
     ))
   }
@@ -33,7 +34,7 @@ function MessageBubble({ message }) {
   )
 }
 
-export default function AiChat({ onAnswer, useContext, onContextChange, positions }) {
+export default function AiChat({ onAnswer, useContext, onContextChange, positions, totalAum }) {
   const [messages, setMessages] = useState([
     { id: 1, role: 'assistant', content: GREETING }
   ])
@@ -75,27 +76,13 @@ export default function AiChat({ onAnswer, useContext, onContextChange, position
 
       let summary = data.summary || '(No response)'
 
-      // If useContext is OFF, call summarize endpoint for compressed version
-      if (!useContext && summary) {
-        try {
-          const sumResp = await axios.post('/analyst/summarize', { summary })
-          let bulletPoints = sumResp.data?.summary || []
-
-          // Clean up the response if it's wrapped in JSON or markdown
-          if (Array.isArray(bulletPoints)) {
-            bulletPoints = bulletPoints.map(b => cleanBullet(b))
-          } else if (typeof bulletPoints === 'string') {
-            bulletPoints = [cleanBullet(bulletPoints)]
-          }
-
-          summary = bulletPoints
-        } catch (err) {
-          console.warn('Summarize failed:', err)
-          summary = [summary]
-        }
+      // Format the response nicely
+      if (!useContext) {
+        // Without context: just the numbers
+        summary = formatResponseDataOnly(summary, positions, totalAum)
       } else {
-        // Keep full summary as plain text
-        summary = [summary]
+        // With context: keep full analyst narrative
+        summary = formatResponseFull(summary)
       }
 
       setMessages(prev =>
@@ -112,7 +99,7 @@ export default function AiChat({ onAnswer, useContext, onContextChange, position
       setMessages(prev =>
         prev.map(m =>
           m.id === thinkingMsgId
-            ? { ...m, content: [errMsg], thinking: false }
+            ? { ...m, content: `Error: ${errMsg}`, thinking: false }
             : m
         )
       )
@@ -179,36 +166,72 @@ export default function AiChat({ onAnswer, useContext, onContextChange, position
 }
 
 /**
- * Clean bullet point text by removing JSON/markdown wrappers
+ * Format response with just numbers from DB (no market context)
  */
-function cleanBullet(text) {
-  if (!text) return ''
+function formatResponseDataOnly(summary, positions, totalAum) {
+  try {
+    // Extract just the core numbers from the summary
+    // Clean up JSON/markdown if present
+    let text = summary.replace(/^```json\s*/i, '').replace(/```\s*$/, '')
+    text = text.replace(/^```\s*/i, '').replace(/```\s*$/, '')
 
-  // Remove markdown code block markers
-  text = text.replace(/^```json\s*/i, '').replace(/```\s*$/, '')
-  text = text.replace(/^```\s*/i, '').replace(/```\s*$/, '')
+    // Build a clean instrument breakdown
+    const posCount = positions?.length || 0
+    const formattedAum = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(totalAum || 0)
 
-  // Remove JSON quotes and array formatting
-  text = text.replace(/^"/, '').replace(/",$/, '')
-  text = text.replace(/\[\s*/, '').replace(/\s*\]/, '')
+    let response = `This portfolio has ${posCount} instruments with AUM of ${formattedAum}. Here is the breakdown:\n\n`
 
-  // Remove "summary": [ prefix
-  text = text.replace(/^[\s\[\{]*"?summary"?\s*:\s*\[\s*/i, '')
-  text = text.replace(/\s*\]\s*[\}\]]*$/, '')
+    // Group positions by type
+    const byType = {}
+    positions.forEach(p => {
+      const type = p.instrumentType || p.type || 'OTHER'
+      if (!byType[type]) byType[type] = []
+      byType[type].push(p)
+    })
 
-  // Decode escaped quotes and newlines
-  text = text.replace(/\\"/g, '"').replace(/\\n/g, ' ')
+    // Format each position
+    Object.entries(byType).forEach(([type, items]) => {
+      items.forEach(pos => {
+        const instrument = pos.instrumentId || pos.instrument || 'Unknown'
+        const qty = pos.netQty ?? pos.quantity ?? 0
+        const price = pos.price ?? 0
+        const mktValue = pos.mktValue ?? pos.marketValue ?? 0
 
-  // Clean up extra quotes
-  text = text.replace(/^"+/, '').replace(/"+$/, '')
+        const formattedValue = new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: 'USD',
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0,
+        }).format(mktValue)
 
-  // Trim whitespace
-  text = text.trim()
+        response += `${instrument}: ${Math.abs(qty).toLocaleString()} shares @ $${price.toFixed(2)} = ${formattedValue}\n`
+      })
+    })
 
-  // If starts with bullet, keep it; otherwise add one
-  if (!text.startsWith('•')) {
-    text = '• ' + text
+    response += `\nSummary: ${text.slice(0, 300)}`
+
+    return response
+  } catch (err) {
+    console.warn('Format error:', err)
+    return summary
   }
+}
 
-  return text
+/**
+ * Format full analyst response (keep as-is, just clean JSON)
+ */
+function formatResponseFull(summary) {
+  // Remove JSON/markdown wrappers if present
+  let text = summary.replace(/^```json\s*/i, '').replace(/```\s*$/, '')
+  text = text.replace(/^```\s*/i, '').replace(/```\s*$/, '')
+  text = text.replace(/^[\s\[\{]*"?summary"?\s*:\s*\[?\s*/i, '')
+  text = text.replace(/\]?\s*[\}\]]*$/, '')
+  text = text.replace(/^"+/, '').replace(/"+$/, '')
+  text = text.replace(/\\"/g, '"').replace(/\\n/g, '\n')
+  return text.trim()
 }

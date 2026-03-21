@@ -219,6 +219,29 @@ body {
   overflow: hidden;
 }
 
+.controls-bar {
+  height: 48px;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 20px;
+  flex-shrink: 0;
+}
+
+.controls-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.controls-label {
+  font-size: 13px;
+  color: var(--text-2);
+  font-weight: 500;
+}
+
 .grid-pane {
   flex: 0.7;
   min-height: 200px;

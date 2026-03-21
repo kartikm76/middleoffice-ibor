@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import FilterBar from './components/FilterBar.jsx'
+import ControlsBar from './components/ControlsBar.jsx'
 import PortfolioSnapshot from './components/PortfolioSnapshot.jsx'
 import AiChat from './components/AiChat.jsx'
 import DataGrid from './components/DataGrid.jsx'
@@ -98,6 +99,12 @@ export default function App() {
 
         {/* Main content (grid stacked on chat) */}
         <div className="main-content">
+          <ControlsBar
+            asOf={asOf}
+            portfolioCode={portfolioCode}
+            onDateChange={setAsOf}
+            onPortfolioChange={setPortfolioCode}
+          />
           <div className="grid-pane">
             <DataGrid
               gridState={gridState}
@@ -112,6 +119,7 @@ export default function App() {
               useContext={useContext}
               onContextChange={setUseContext}
               positions={positions}
+              totalAum={totalAum}
             />
           </div>
         </div>
