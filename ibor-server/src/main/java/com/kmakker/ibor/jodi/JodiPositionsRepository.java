@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 @Repository
@@ -17,20 +18,48 @@ public class JodiPositionsRepository {
         this.dslContext = dslContext;
     }
 
-    public List<PositionDTO> findPositions(LocalDate asOf, String portfolioCode, Integer page, Integer size) {
+    public List<PositionDTO> findPositions(LocalDate asOf, String portfolioCode, String accountCode, Integer page, Integer size) {
         int p = (page == null || page < 1) ? 1 : page;
         int s = (size == null || size <= 0) ? 50 : size;
         int offset = Math.max(0, (p - 1) * s);
 
+        boolean filterByAccount = accountCode != null && !accountCode.isBlank();
+
+        // Account filter CTE: only included when accountCode is provided.
+        // The join path is: dim_account -> dim_account_portfolio -> dim_portfolio.
+        String accountCte = filterByAccount ? """
+            acct AS (
+              SELECT da.account_vid
+              FROM ibor.dim_account da
+              WHERE da.account_code = ?          -- account param
+                AND da.valid_from <= ?
+                AND da.valid_to   >= ?
+              LIMIT 1
+            ),
+            acct_ptf AS (
+              SELECT dap.portfolio_vid
+              FROM ibor.dim_account_portfolio dap
+              JOIN acct ON dap.account_vid = acct.account_vid
+              WHERE dap.valid_from <= ?
+                AND dap.valid_to   >= ?
+            ),
+            """ : "";
+
+        String accountJoin = filterByAccount
+                ? "JOIN acct_ptf ON acct_ptf.portfolio_vid = dp.portfolio_vid"
+                : "";
+
         final String sql = """
         WITH
+        """ + accountCte + """
             p AS (
-              SELECT portfolio_vid, portfolio_code
-              FROM ibor.dim_portfolio
-              WHERE portfolio_code = ?           -- 1
-                AND valid_from <= ?              -- 2
-                AND valid_to   >= ?              -- 3
-              ORDER BY valid_from DESC
+              SELECT dp.portfolio_vid, dp.portfolio_code
+              FROM ibor.dim_portfolio dp
+              """ + accountJoin + """
+              WHERE dp.portfolio_code = ?        -- portfolioCode
+                AND dp.valid_from <= ?
+                AND dp.valid_to   >= ?
+              ORDER BY dp.valid_from DESC
               LIMIT 1
             ),
             latest_snap AS (
@@ -88,6 +117,7 @@ public class JodiPositionsRepository {
             )
             SELECT
               ?                                   AS as_of,            -- 9
+              latest_snap.snap_date               AS snap_date,
               (SELECT portfolio_code FROM p)      AS portfolio_id,
               i.instrument_code                   AS instrument_id,
               i.instrument_type                   AS instrument_type,
@@ -100,6 +130,7 @@ public class JodiPositionsRepository {
               COALESCE(pp.price_currency, i.currency_code) AS currency,
               m.contract_multiplier               AS contract_multiplier
             FROM cur
+            CROSS JOIN latest_snap
             JOIN i            ON i.instrument_vid = cur.instrument_vid
             LEFT JOIN price_pick pp ON pp.instrument_vid = cur.instrument_vid
             LEFT JOIN mult       m  ON m.instrument_vid  = cur.instrument_vid
@@ -108,28 +139,36 @@ public class JodiPositionsRepository {
             LIMIT ? OFFSET ?;
         """;
 
-        // Bind each '?' in the same order:
+        // Build param list dynamically
+        List<Object> params = new ArrayList<>();
+        if (filterByAccount) {
+            params.add(accountCode); // acct.account_code
+            params.add(asOf);        // acct.valid_from <=
+            params.add(asOf);        // acct.valid_to >=
+            params.add(asOf);        // acct_ptf.valid_from <=
+            params.add(asOf);        // acct_ptf.valid_to >=
+        }
+        params.add(portfolioCode);   // p.portfolio_code
+        params.add(asOf);            // p.valid_from <=
+        params.add(asOf);            // p.valid_to >=
+        params.add(asOf);            // latest_snap.position_date <=
+        params.add(asOf);            // adj.effective_date <=
+        params.add(asOf);            // i.valid_from <=
+        params.add(asOf);            // i.valid_to >=
+        params.add(asOf);            // price_pick.price_ts <=
+        params.add(asOf);            // as_of literal
+        params.add(s);               // LIMIT
+        params.add(offset);          // OFFSET
+
         return dslContext
-                .resultQuery(
-                        sql,
-                        portfolioCode,   // 1
-                        asOf,            // 2
-                        asOf,            // 3
-                        asOf,            // 4
-                        asOf,            // 5
-                        asOf,            // 6
-                        asOf,            // 7
-                        asOf,            // 8
-                        asOf,            // 9
-                        size,            // 10
-                        offset           // 11
-                )
+                .resultQuery(sql, params.toArray())
                 .fetch(this::toDto);
     }
 
     private PositionDTO toDto(Record record) {
         return new PositionDTO(
                 record.get("as_of", LocalDate.class),
+                record.get("snap_date", LocalDate.class),
                 record.get("portfolio_id", String.class),
                 record.get("instrument_id", String.class),
                 record.get("instrument_type", String.class),

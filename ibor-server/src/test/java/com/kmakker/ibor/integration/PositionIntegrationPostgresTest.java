@@ -22,7 +22,8 @@ public class PositionIntegrationPostgresTest extends PgWithProjectFiles {
         List<PositionDTO> positions = jodiPositionsRepository.findPositions(
                     LocalDate.parse("2025-01-03"),
                     "P-ALPHA",
-                    0,
+                    null,
+                    1,
                     10);
         // TODO: add assertions
         assertThat(positions).isNotEmpty();

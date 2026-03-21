@@ -33,6 +33,8 @@ public class PositionController {
             @RequestParam("asOf") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate asOf,
             @Parameter(description = "Portfolio Code (e.g. 'P-ALPHA')", required = true)
             @RequestParam("portfolioCode") String portfolioCode,
+            @Parameter(description = "Account Code filter (optional, e.g. 'ACCT-PRIME')", required = false)
+            @RequestParam(value = "accountCode", required = false) String accountCode,
             @Parameter(description = "Page number (default 1)", required = false)
             @RequestParam(value = "page", required = false) Integer page,
             @Parameter(description = "Page size (default 100, max 500)", required = false)
@@ -43,7 +45,7 @@ public class PositionController {
         if (size == null || size <= 0) {
             size = 100;
         }
-        List<PositionDTO> positions = positionService.getPositions(asOf, portfolioCode, page, size);
+        List<PositionDTO> positions = positionService.getPositions(asOf, portfolioCode, accountCode, page, size);
         return ResponseEntity
                 .ok()
                 .header("x-contract-version", CONTRACT_VERSION)

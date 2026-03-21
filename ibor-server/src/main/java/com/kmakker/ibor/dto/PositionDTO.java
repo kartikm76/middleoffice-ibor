@@ -9,6 +9,7 @@ import java.time.LocalDate;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record PositionDTO (
     @JsonProperty("asOf") LocalDate asOf,
+    @JsonProperty("snapDate") LocalDate snapDate,
     @JsonProperty("portfolioId") String portfolioId,
     @JsonProperty("instrumentId") String instrumentId,
     @JsonProperty("instrumentType") String instrumentType,

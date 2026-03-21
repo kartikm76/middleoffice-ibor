@@ -18,7 +18,7 @@ public class PositionService {
         this.positionsRepository = positionsRepository;
     }
 
-    public List<PositionDTO> getPositions(LocalDate asOf, String portfolioCode, Integer page, Integer size) {
+    public List<PositionDTO> getPositions(LocalDate asOf, String portfolioCode, String accountCode, Integer page, Integer size) {
         if (asOf == null) {
             throw new IllegalArgumentException("asOf must be provided (YYYY-MM-DD)");
         }
@@ -28,6 +28,6 @@ public class PositionService {
         int p = (page == null || page < 1) ? 1 : page;
         int s = (size == null || size <= 0) ? DEFAULT_PAGE_SIZE : Math.min(size, MAX_PAGE_SIZE);
 
-        return positionsRepository.findPositions(asOf, portfolioCode, p, s);
+        return positionsRepository.findPositions(asOf, portfolioCode, accountCode, p, s);
     }
 }

@@ -24,7 +24,7 @@ You are analyzing a portfolio manager's question to determine what data to fetch
 Today's date: {today}
 
 Available IBOR tools:
-- positions: portfolio holdings as-of a date         (portfolioCode, asOf required)
+- positions: portfolio holdings as-of a date         (portfolioCode, asOf required; optional: accountCode)
 - pnl:       P&L delta between two dates             (portfolioCode, asOf, prior required)
 - trades:    transaction history for one instrument  (portfolioCode, instrumentCode, asOf required)
 - prices:    historical price series                 (instrumentCode, fromDate, toDate required)
@@ -210,21 +210,22 @@ class LlmService:
         try:
             if tool == "positions":
                 return await self._service.positions(
-                    portfolio_code=args.get("portfolioCode", ""),
+                    portfolio_code=args.get("portfolioCode") or "P-ALPHA",
                     as_of=_d("asOf", today),
+                    account_code=args.get("accountCode"),
                     base_currency=args.get("baseCurrency"),
                     source=args.get("source"),
                 )
             if tool == "pnl":
                 return await self._service.pnl(
-                    portfolio_code=args.get("portfolioCode", ""),
+                    portfolio_code=args.get("portfolioCode") or "P-ALPHA",
                     as_of=_d("asOf", today),
                     prior=_d("prior", today - timedelta(days=1)),
                     instrument_code=args.get("instrumentCode"),
                 )
             if tool == "trades":
                 return await self._service.trades(
-                    portfolio_code=args.get("portfolioCode", ""),
+                    portfolio_code=args.get("portfolioCode") or "P-ALPHA",
                     instrument_code=args.get("instrumentCode", ""),
                     as_of=_d("asOf", today),
                 )
@@ -336,7 +337,7 @@ def _extract_equity_tickers(ibor_results: List) -> List[str]:
                     ticker = code[3:]  # e.g. "EQ-AAPL" → "AAPL"
                     if re.match(r"^[A-Z]{1,6}$", ticker):
                         tickers.add(ticker)
-    return list(tickers)[:5]  # cap to avoid excessive external API calls
+    return list(tickers)[:10]  # cap to avoid excessive external API calls
 
 
 def _collate_market(

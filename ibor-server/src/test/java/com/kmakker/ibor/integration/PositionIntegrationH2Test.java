@@ -43,6 +43,7 @@ public class PositionIntegrationH2Test {
         // Stub repository to avoid real DB dependency
         var dto = new PositionDTO(
                 LocalDate.parse("2025-01-02"),
+                LocalDate.parse("2025-01-02"),
                 "P-ALPHA",
                 "EQ-IBM",
                 "EQUITY",
@@ -58,6 +59,7 @@ public class PositionIntegrationH2Test {
         when(positionsRepository.findPositions(
                     eq(LocalDate.parse("2025-01-02")),
                     eq("P-ALPHA"),
+                    org.mockito.ArgumentMatchers.isNull(),
                     anyInt(),
                     anyInt()))
                 .thenReturn(List.of(dto));

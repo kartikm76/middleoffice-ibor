@@ -32,18 +32,20 @@ class IborService:
         self,
         portfolio_code: str,
         as_of: date,
+        account_code: Optional[str] = None,
         base_currency: Optional[str] = None,
         source: Optional[str] = None,
         page: int = 0,
         size: int = 500,
     ) -> IborAnswer:
-        cache_key = ("positions", portfolio_code, as_of.isoformat(), base_currency, source, page, size)
+        cache_key = ("positions", portfolio_code, as_of.isoformat(), account_code, base_currency, source, page, size)
         if cached := self._cached(cache_key):
             return cached
 
         raw = await self._client.get_positions(
             portfolio_code=portfolio_code,
             as_of=as_of.isoformat(),
+            account_code=account_code,
             base_currency=base_currency,
             source=source,
             page=page,
@@ -55,6 +57,8 @@ class IborService:
         currencies = sorted({p["currency"] for p in positions if p.get("currency")})
 
         qs = f"portfolioCode={portfolio_code}&asOf={as_of.isoformat()}"
+        if account_code:
+            qs += f"&accountCode={account_code}"
         answer = IborAnswer(
             question=f"positions({portfolio_code}, {as_of})",
             as_of=as_of,

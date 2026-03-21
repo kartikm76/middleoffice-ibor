@@ -32,6 +32,7 @@ class PositionControllerTest {
     void getPositions_returnOkWithBodyAndContractHeader() throws Exception {
         var dto = new PositionDTO(
                 LocalDate.parse("2025-01-02"),
+                LocalDate.parse("2025-01-02"),
                 "P-ALPHA",
                 "EQ-IBM",
                 "EQUITY",
@@ -47,7 +48,7 @@ class PositionControllerTest {
 
         // service method is mocked to return the dto (defined above)
         when(positionService.getPositions(
-                any(), any(), any(), any()
+                any(), any(), any(), any(), any()
         )).thenReturn(List.of(dto));
 
         // this controller internally calls the positionService which has been mocked above using @MockBean

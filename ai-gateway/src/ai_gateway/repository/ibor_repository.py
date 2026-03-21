@@ -33,12 +33,15 @@ class IborRepository:
         self,
         portfolio_code: str,
         as_of: str,
+        account_code: Optional[str] = None,
         base_currency: Optional[str] = None,
         source: Optional[str] = None,
         page: int = 0,
         size: int = 500,
     ) -> List[Dict[str, Any]]:
         params: Dict[str, Any] = {"portfolioCode": portfolio_code, "asOf": as_of, "page": page, "size": size}
+        if account_code:
+            params["accountCode"] = account_code
         if base_currency:
             params["baseCurrency"] = base_currency
         if source:
