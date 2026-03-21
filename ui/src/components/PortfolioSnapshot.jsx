@@ -1,13 +1,13 @@
 import React from 'react'
 
 const TYPE_COLORS = {
-  EQUITY: '#3b82f6',
-  BOND:   '#22c55e',
-  FUT:    '#f59e0b',
-  OPT:    '#a855f7',
-  FX:     '#06b6d4',
-  INDEX:  '#ec4899',
-  OTHER:  '#64748b',
+  EQUITY: '#4a9eff',
+  BOND:   '#2ecc71',
+  FUT:    '#f39c12',
+  OPT:    '#9b59b6',
+  FX:     '#1abc9c',
+  INDEX:  '#e74c3c',
+  OTHER:  '#7f8c8d',
 }
 
 function formatAum(value) {
@@ -35,7 +35,6 @@ function computeAssetMix(positions) {
 export default function PortfolioSnapshot({ positions, totalAum, snapDate, asOf, portfolioCode, loading }) {
   const assetMix = computeAssetMix(positions)
   const portfolioId = (positions[0] && (positions[0].portfolioId || positions[0].portfolio)) || portfolioCode || 'P-ALPHA'
-  const isStale = snapDate && asOf && snapDate !== asOf
 
   if (loading) {
     return (
@@ -59,27 +58,12 @@ export default function PortfolioSnapshot({ positions, totalAum, snapDate, asOf,
         <div className="sidebar-aum">{formatAum(totalAum)}</div>
       </div>
 
-      {/* Snap date + As Of */}
+      {/* Dates */}
       <div className="sidebar-section">
-        <div className="sidebar-label">Snap Date</div>
-        <div className="sidebar-value">
-          {snapDate || '—'}
-          {isStale && (
-            <span style={{
-              marginLeft: '6px',
-              background: 'rgba(245,158,11,0.15)',
-              color: 'var(--orange)',
-              border: '1px solid rgba(245,158,11,0.3)',
-              borderRadius: '3px',
-              fontSize: '10px',
-              padding: '1px 5px',
-              fontWeight: 600,
-              display: 'inline-block',
-            }}>STALE</span>
-          )}
-        </div>
-        <div className="sidebar-label" style={{ marginTop: '6px' }}>As Of</div>
+        <div className="sidebar-label">As of</div>
         <div className="sidebar-value">{asOf || '—'}</div>
+        <div className="sidebar-label" style={{ marginTop: '8px' }}>Snap Date</div>
+        <div className="sidebar-value">{snapDate || '—'}</div>
       </div>
 
       <div className="sidebar-divider" />
@@ -88,13 +72,13 @@ export default function PortfolioSnapshot({ positions, totalAum, snapDate, asOf,
       <div className="sidebar-section">
         <div className="sidebar-label">Asset Mix</div>
         {assetMix.length === 0 && (
-          <div style={{ fontSize: 13, color: 'var(--text-3)' }}>No position data</div>
+          <div style={{ fontSize: 13, color: 'var(--text-3)', marginTop: '4px' }}>No data</div>
         )}
         {assetMix.map(({ type, amount, pct }) => (
           <div key={type} className="asset-type">
             <div className="asset-type-name">
-              <span style={{ color: 'var(--text-2)' }}>{type}</span>
-              <span style={{ color: 'var(--text-3)', fontSize: '11px' }}>{pct.toFixed(0)}%</span>
+              <span style={{ color: 'var(--text-1)', fontWeight: 500 }}>{type}</span>
+              <span style={{ color: 'var(--text-3)', fontSize: '12px' }}>{pct.toFixed(0)}%</span>
             </div>
             <div className="asset-type-bar">
               <div
@@ -102,7 +86,7 @@ export default function PortfolioSnapshot({ positions, totalAum, snapDate, asOf,
                 style={{ width: `${pct}%`, background: TYPE_COLORS[type] || TYPE_COLORS.OTHER }}
               />
             </div>
-            <div style={{ fontSize: '11px', color: 'var(--text-3)', marginTop: '2px' }}>
+            <div style={{ fontSize: '12px', color: 'var(--text-3)', marginTop: '2px' }}>
               {formatAum(amount)}
             </div>
           </div>

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import axios from 'axios'
 
-const GREETING = "Ask me about positions, trades, P&L, and market data for portfolio P-ALPHA."
+const GREETING = "Ask me about positions, trades, P&L, and market data."
 
 function ThinkingDots() {
   return (
@@ -13,11 +13,17 @@ function ThinkingDots() {
 
 function MessageBubble({ message }) {
   const isUser = message.role === 'user'
+  let content = message.content
+
+  // Format assistant response as bullet points if it's an array
+  if (!isUser && Array.isArray(content)) {
+    content = content.map(bullet => `• ${bullet}`).join('\n')
+  }
 
   return (
     <div className={`chat-bubble-wrap ${isUser ? 'user' : 'assistant'}`}>
       <div className={`chat-bubble ${isUser ? 'user' : 'assistant'}`}>
-        {message.thinking ? <ThinkingDots /> : message.content}
+        {message.thinking ? <ThinkingDots /> : content}
       </div>
     </div>
   )
@@ -25,7 +31,7 @@ function MessageBubble({ message }) {
 
 export default function AiChat({ onAnswer, useContext, onContextChange, positions }) {
   const [messages, setMessages] = useState([
-    { id: 1, role: 'assistant', content: GREETING, gaps: [] }
+    { id: 1, role: 'assistant', content: GREETING }
   ])
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
@@ -51,7 +57,7 @@ export default function AiChat({ onAnswer, useContext, onContextChange, position
     setMessages(prev => [
       ...prev,
       { id: userMsgId, role: 'user', content: question },
-      { id: thinkingMsgId, role: 'assistant', content: '', thinking: true, gaps: [] },
+      { id: thinkingMsgId, role: 'assistant', content: '', thinking: true },
     ])
     setInput('')
     setSending(true)
@@ -70,16 +76,20 @@ export default function AiChat({ onAnswer, useContext, onContextChange, position
         try {
           const sumResp = await axios.post('/analyst/summarize', { summary })
           const bulletPoints = sumResp.data?.summary || []
-          summary = Array.isArray(bulletPoints) ? bulletPoints.join('\n') : summary
+          summary = Array.isArray(bulletPoints) ? bulletPoints : [summary]
         } catch (err) {
-          console.warn('Summarize failed, using original:', err)
+          console.warn('Summarize failed:', err)
+          summary = [summary]
         }
+      } else {
+        // Keep full summary as plain text
+        summary = summary
       }
 
       setMessages(prev =>
         prev.map(m =>
           m.id === thinkingMsgId
-            ? { ...m, content: summary, thinking: false, gaps: [] }
+            ? { ...m, content: summary, thinking: false }
             : m
         )
       )
@@ -90,7 +100,7 @@ export default function AiChat({ onAnswer, useContext, onContextChange, position
       setMessages(prev =>
         prev.map(m =>
           m.id === thinkingMsgId
-            ? { ...m, content: `Error: ${errMsg}`, thinking: false, gaps: [] }
+            ? { ...m, content: `Error: ${errMsg}`, thinking: false }
             : m
         )
       )
@@ -109,7 +119,7 @@ export default function AiChat({ onAnswer, useContext, onContextChange, position
   return (
     <>
       <div className="chat-header">
-        💬 AI Analyst
+        💬 AI Chat
       </div>
 
       <div className="context-checkbox">
@@ -120,7 +130,7 @@ export default function AiChat({ onAnswer, useContext, onContextChange, position
           onChange={(e) => onContextChange(e.target.checked)}
         />
         <label htmlFor="context-toggle">
-          Include Context (Yahoo Finance)
+          Include market context
         </label>
       </div>
 
@@ -139,7 +149,7 @@ export default function AiChat({ onAnswer, useContext, onContextChange, position
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask about positions, trades, P&L…"
+            placeholder="What do you want to know?"
             rows={1}
             disabled={sending}
           />
@@ -151,9 +161,7 @@ export default function AiChat({ onAnswer, useContext, onContextChange, position
             {sending ? '…' : 'Send'}
           </button>
         </div>
-        <div className="chat-hint">Enter to send · Shift+Enter for new line</div>
       </div>
     </>
   )
 }
-

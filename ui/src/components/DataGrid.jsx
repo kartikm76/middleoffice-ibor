@@ -44,26 +44,25 @@ function normalizePrice(pr) {
 }
 
 const POSITION_COLS = [
-  { field: 'instrument', headerName: 'Instrument', sortable: true, filter: true, flex: 2, minWidth: 120 },
-  { field: 'type',       headerName: 'Type',       sortable: true, width: 90 },
-  { field: 'qty',        headerName: 'Qty',        type: 'numericColumn', valueFormatter: numFmt,  width: 100 },
+  { field: 'instrument', headerName: 'Instrument', sortable: true, filter: true, flex: 1.5, minWidth: 110 },
+  { field: 'type',       headerName: 'Type',       sortable: true, width: 85 },
+  { field: 'qty',        headerName: 'Qty',        type: 'numericColumn', valueFormatter: numFmt,  width: 95 },
   { field: 'price',      headerName: 'Price',      type: 'numericColumn', valueFormatter: usdFmt,  width: 110 },
-  { field: 'mktValue',   headerName: 'Mkt Value',  type: 'numericColumn', valueFormatter: usdFmt,  flex: 1, minWidth: 120 },
+  { field: 'mktValue',   headerName: 'Mkt Value',  type: 'numericColumn', valueFormatter: usdFmt,  flex: 1, minWidth: 110 },
   { field: 'currency',   headerName: 'CCY',        width: 70 },
-  { field: 'source',     headerName: 'Source',     width: 80 },
 ]
 
 const TRADE_COLS = [
-  { field: 'tradeId',     headerName: 'Trade ID',  sortable: true, filter: true, flex: 2, minWidth: 120 },
-  { field: 'date',        headerName: 'Date',      sortable: true, width: 110 },
-  { field: 'action',      headerName: 'Action',    sortable: true, width: 90 },
-  { field: 'quantity',    headerName: 'Quantity',  type: 'numericColumn', valueFormatter: numFmt, width: 110 },
+  { field: 'tradeId',     headerName: 'Trade ID',  sortable: true, filter: true, flex: 1.5, minWidth: 110 },
+  { field: 'date',        headerName: 'Date',      sortable: true, width: 100 },
+  { field: 'action',      headerName: 'Action',    sortable: true, width: 85 },
+  { field: 'quantity',    headerName: 'Qty',       type: 'numericColumn', valueFormatter: numFmt, width: 95 },
   { field: 'price',       headerName: 'Price',     type: 'numericColumn', valueFormatter: usdFmt, width: 110 },
-  { field: 'grossAmount', headerName: 'Amount',    type: 'numericColumn', valueFormatter: usdFmt, flex: 1, minWidth: 120 },
+  { field: 'grossAmount', headerName: 'Amount',    type: 'numericColumn', valueFormatter: usdFmt, flex: 1, minWidth: 110 },
 ]
 
 const PRICE_COLS = [
-  { field: 'date',     headerName: 'Date',     sortable: true, filter: true, flex: 1, minWidth: 120 },
+  { field: 'date',     headerName: 'Date',     sortable: true, filter: true, flex: 1, minWidth: 110 },
   { field: 'price',    headerName: 'Price',    type: 'numericColumn', valueFormatter: usdFmt, flex: 1, minWidth: 110 },
   { field: 'currency', headerName: 'Currency', width: 90 },
 ]
@@ -78,8 +77,8 @@ function Grid({ columnDefs, rowData, theme }) {
         columnDefs={columnDefs}
         rowData={rowData}
         defaultColDef={defaultColDef}
-        rowHeight={28}
-        headerHeight={32}
+        rowHeight={30}
+        headerHeight={36}
         pagination
         paginationPageSize={50}
         suppressCellFocus
@@ -92,7 +91,7 @@ function PnlPanel({ pnl }) {
   if (!pnl) {
     return (
       <div style={{ padding: 20, color: 'var(--text-3)', fontSize: 13 }}>
-        No P&L data available.
+        No P&L data.
       </div>
     )
   }
@@ -106,13 +105,13 @@ function PnlPanel({ pnl }) {
       <Row gutter={[12, 12]}>
         {[
           { label: 'Portfolio', value: pnl.portfolio || '—' },
-          { label: 'Current MV', value: fmt(pnl.currentMarketValue), bold: true, color: 'var(--accent)' },
+          { label: 'Current MV', value: fmt(pnl.currentMarketValue), color: 'var(--accent)' },
           { label: 'Previous MV', value: fmt(pnl.previousMarketValue) },
           { label: 'Delta', value: fmt(delta), color: deltaColor, bold: true },
-        ].map(({ label, value, bold, color }) => (
+        ].map(({ label, value, color, bold }) => (
           <Col key={label} span={6}>
             <div style={{ padding: '10px 12px', background: 'var(--bg-surface)', borderRadius: '8px' }}>
-              <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 4 }}>{label}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 4, fontWeight: 600 }}>{label}</div>
               <div style={{ fontSize: 14, fontWeight: bold ? 700 : 600, color: color || 'var(--text-1)' }}>{value}</div>
             </div>
           </Col>

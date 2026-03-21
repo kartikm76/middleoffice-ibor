@@ -84,7 +84,7 @@ export default function App() {
       />
 
       <div className="content-area">
-        {/* Left panel — composition */}
+        {/* Left sidebar — composition */}
         <div className="sidebar">
           <PortfolioSnapshot
             positions={positions}
@@ -96,23 +96,24 @@ export default function App() {
           />
         </div>
 
-        {/* Middle panel — grid */}
-        <div className="grid-pane">
-          <DataGrid
-            gridState={gridState}
-            onTabChange={handleTabChange}
-            theme={theme}
-          />
-        </div>
+        {/* Main content (grid stacked on chat) */}
+        <div className="main-content">
+          <div className="grid-pane">
+            <DataGrid
+              gridState={gridState}
+              onTabChange={handleTabChange}
+              theme={theme}
+            />
+          </div>
 
-        {/* Right panel — chat */}
-        <div className="chat-pane">
-          <AiChat
-            onAnswer={handleAiAnswer}
-            useContext={useContext}
-            onContextChange={setUseContext}
-            positions={positions}
-          />
+          <div className="chat-pane">
+            <AiChat
+              onAnswer={handleAiAnswer}
+              useContext={useContext}
+              onContextChange={setUseContext}
+              positions={positions}
+            />
+          </div>
         </div>
       </div>
     </div>

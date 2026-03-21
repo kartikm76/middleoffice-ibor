@@ -15,13 +15,13 @@ export default function FilterBar({ asOf, portfolioCode, onDateChange, onPortfol
       </div>
 
       <div className="filter-bar-group">
-        <span className="filter-bar-label">Date</span>
+        <span className="filter-bar-label">As of</span>
         <DatePicker
           value={asOf ? dayjs(asOf) : null}
           format="YYYY-MM-DD"
           onChange={(date) => { if (date) onDateChange(date.format('YYYY-MM-DD')) }}
           allowClear={false}
-          style={{ width: 150 }}
+          style={{ width: 160 }}
           size="small"
         />
       </div>
@@ -32,7 +32,7 @@ export default function FilterBar({ asOf, portfolioCode, onDateChange, onPortfol
           value={portfolioCode}
           options={PORTFOLIO_OPTIONS}
           onChange={onPortfolioChange}
-          style={{ width: 130 }}
+          style={{ width: 140 }}
           size="small"
         />
       </div>
