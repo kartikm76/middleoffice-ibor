@@ -70,4 +70,13 @@ def make_analyst_router(service: IborService, agent: LlmService) -> APIRouter:
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
 
+    @router.post("/summarize")
+    async def summarize(body: dict) -> dict:
+        """Compress verbose summary into bullet points per instrument."""
+        try:
+            verbose_text = body.get("summary", "")
+            return await agent.summarize(verbose_text)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
     return router

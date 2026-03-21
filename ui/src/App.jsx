@@ -1,17 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { Layout } from 'antd'
-import AppHeader from './components/AppHeader.jsx'
+import FilterBar from './components/FilterBar.jsx'
 import PortfolioSnapshot from './components/PortfolioSnapshot.jsx'
 import AiChat from './components/AiChat.jsx'
 import DataGrid from './components/DataGrid.jsx'
 import { fetchPositions } from './api/ibor.js'
 
-const { Content } = Layout
-
 const DEFAULT_AS_OF = '2026-03-20'
 const DEFAULT_PORTFOLIO = 'P-ALPHA'
 
 export default function App() {
+  const [theme, setTheme] = useState(() => localStorage.getItem('ibor-theme') || 'dark')
   const [asOf, setAsOf] = useState(DEFAULT_AS_OF)
   const [portfolioCode, setPortfolioCode] = useState(DEFAULT_PORTFOLIO)
   const [positions, setPositions] = useState([])
@@ -19,6 +17,14 @@ export default function App() {
   const [totalAum, setTotalAum] = useState(0)
   const [loading, setLoading] = useState(false)
   const [gridState, setGridState] = useState({ tab: 'positions', data: {} })
+  const [useContext, setUseContext] = useState(false)
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme)
+    localStorage.setItem('ibor-theme', theme)
+  }, [theme])
+
+  const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark')
 
   const loadPositions = useCallback(async (portfolio, date) => {
     setLoading(true)
@@ -30,7 +36,6 @@ export default function App() {
       setTotalAum(aum)
       const firstSnapDate = rows[0]?.snapDate || null
       setSnapDate(firstSnapDate)
-      // Pre-populate positions tab with Spring Boot data
       setGridState(prev => ({
         ...prev,
         tab: 'positions',
@@ -50,36 +55,15 @@ export default function App() {
     loadPositions(portfolioCode, asOf)
   }, [asOf, portfolioCode, loadPositions])
 
-  function handleDateChange(newDate) {
-    setAsOf(newDate)
-  }
-
-  function handlePortfolioChange(newPortfolio) {
-    setPortfolioCode(newPortfolio)
-  }
-
   function handleAiAnswer(answer) {
     const ibor = answer?.data?.ibor || {}
-
     let newTab = gridState.tab
     let newData = { ...gridState.data }
 
-    if (ibor.positions) {
-      newData.positions = ibor.positions
-      newTab = 'positions'
-    }
-    if (ibor.trades) {
-      newData.trades = ibor.trades
-      if (!ibor.positions) newTab = 'trades'
-    }
-    if (ibor.prices) {
-      newData.prices = ibor.prices
-      if (!ibor.positions && !ibor.trades) newTab = 'prices'
-    }
-    if (ibor.pnl) {
-      newData.pnl = ibor.pnl
-      if (!ibor.positions && !ibor.trades && !ibor.prices) newTab = 'pnl'
-    }
+    if (ibor.positions) { newData.positions = ibor.positions; newTab = 'positions' }
+    if (ibor.trades) { newData.trades = ibor.trades; if (!ibor.positions) newTab = 'trades' }
+    if (ibor.prices) { newData.prices = ibor.prices; if (!ibor.positions && !ibor.trades) newTab = 'prices' }
+    if (ibor.pnl) { newData.pnl = ibor.pnl; if (!ibor.positions && !ibor.trades && !ibor.prices) newTab = 'pnl' }
 
     setGridState({ tab: newTab, data: newData })
   }
@@ -90,17 +74,18 @@ export default function App() {
 
   return (
     <div className="app-root">
-      {/* Header */}
-      <AppHeader
+      <FilterBar
         asOf={asOf}
         portfolioCode={portfolioCode}
-        onDateChange={handleDateChange}
-        onPortfolioChange={handlePortfolioChange}
+        onDateChange={setAsOf}
+        onPortfolioChange={setPortfolioCode}
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
 
-      {/* Middle row: snapshot + chat */}
-      <div className="main-panels">
-        <div className="left-panel">
+      <div className="content-area">
+        {/* Left panel — composition */}
+        <div className="sidebar">
           <PortfolioSnapshot
             positions={positions}
             totalAum={totalAum}
@@ -110,14 +95,25 @@ export default function App() {
             loading={loading}
           />
         </div>
-        <div className="right-panel">
-          <AiChat onAnswer={handleAiAnswer} />
-        </div>
-      </div>
 
-      {/* Bottom panel: tabbed data grid */}
-      <div className="bottom-panel">
-        <DataGrid gridState={gridState} onTabChange={handleTabChange} />
+        {/* Middle panel — grid */}
+        <div className="grid-pane">
+          <DataGrid
+            gridState={gridState}
+            onTabChange={handleTabChange}
+            theme={theme}
+          />
+        </div>
+
+        {/* Right panel — chat */}
+        <div className="chat-pane">
+          <AiChat
+            onAnswer={handleAiAnswer}
+            useContext={useContext}
+            onContextChange={setUseContext}
+            positions={positions}
+          />
+        </div>
       </div>
     </div>
   )

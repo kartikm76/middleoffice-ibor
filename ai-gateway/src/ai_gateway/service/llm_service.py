@@ -135,6 +135,30 @@ class LlmService:
         self._market = market_tools
         self._model = model or "claude-sonnet-4-6"
 
+    async def summarize(self, verbose_text: str) -> dict:
+        """Compress verbose analysis into bullet-point summary."""
+        try:
+            resp = await self._anthropic.messages.create(
+                model=self._model,
+                max_tokens=512,
+                system=_SUMMARIZER_SYSTEM,
+                messages=[{"role": "user", "content": f"Summarize this:\n\n{verbose_text}"}],
+            )
+            text_block = next((b for b in resp.content if b.type == "text"), None)
+            result_text = text_block.text if text_block else ""
+
+            # Try to parse JSON; if it fails, fall back to line-by-line bullets
+            try:
+                result_json = json.loads(result_text)
+                return {"summary": result_json.get("summary", [result_text])}
+            except json.JSONDecodeError:
+                # Fallback: split into sentences
+                bullets = [s.strip() for s in result_text.split(".") if s.strip()][:5]
+                return {"summary": bullets}
+        except Exception as exc:
+            log.warning("summarize failed: %s", exc)
+            return {"summary": [verbose_text[:200] + "..."]}
+
     async def chat(self, question: str) -> IborAnswer:
         today = date.today()
 
@@ -354,3 +378,19 @@ def _collate_market(
         else:
             context["by_ticker"].setdefault(ticker, {})[label] = result
     return context
+
+
+# Summarizer prompt
+_SUMMARIZER_SYSTEM = """\
+You are a portfolio analyst writing crisp, concise bullet-point summaries.
+
+You are given a verbose narrative about a portfolio.
+Compress it into 3-5 bullet points, with one per major position or theme.
+
+Each bullet should be:
+- 1 sentence max
+- A fact + a key insight (e.g. "SPY 200 sh | $129K | Up 1.2% today")
+- No jargon; plain English
+
+Format as a JSON object with key "summary" containing the list of bullets.
+"""
