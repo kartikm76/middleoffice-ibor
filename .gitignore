@@ -14,3 +14,7 @@
 # Secrets — never commit
 **/.env
 ai-gateway/.env
+
+# UI build output
+ui/dist/
+ui/node_modules/
