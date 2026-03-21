@@ -79,8 +79,6 @@ function Grid({ columnDefs, rowData, theme }) {
         defaultColDef={defaultColDef}
         rowHeight={30}
         headerHeight={36}
-        pagination
-        paginationPageSize={50}
         suppressCellFocus
       />
     </div>

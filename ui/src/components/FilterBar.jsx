@@ -14,6 +14,8 @@ export default function FilterBar({ asOf, portfolioCode, onDateChange, onPortfol
         IBOR
       </div>
 
+      <div style={{ flex: 1 }} />
+
       <div className="filter-bar-group">
         <span className="filter-bar-label">As of</span>
         <DatePicker

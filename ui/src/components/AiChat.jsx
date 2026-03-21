@@ -15,9 +15,13 @@ function MessageBubble({ message }) {
   const isUser = message.role === 'user'
   let content = message.content
 
-  // Format assistant response as bullet points if it's an array
+  // If content is an array of bullets, render as bullets
   if (!isUser && Array.isArray(content)) {
-    content = content.map(bullet => `• ${bullet}`).join('\n')
+    content = content.map((bullet, i) => (
+      <div key={i} style={{ marginBottom: i < content.length - 1 ? '6px' : '0' }}>
+        {bullet}
+      </div>
+    ))
   }
 
   return (
@@ -75,15 +79,23 @@ export default function AiChat({ onAnswer, useContext, onContextChange, position
       if (!useContext && summary) {
         try {
           const sumResp = await axios.post('/analyst/summarize', { summary })
-          const bulletPoints = sumResp.data?.summary || []
-          summary = Array.isArray(bulletPoints) ? bulletPoints : [summary]
+          let bulletPoints = sumResp.data?.summary || []
+
+          // Clean up the response if it's wrapped in JSON or markdown
+          if (Array.isArray(bulletPoints)) {
+            bulletPoints = bulletPoints.map(b => cleanBullet(b))
+          } else if (typeof bulletPoints === 'string') {
+            bulletPoints = [cleanBullet(bulletPoints)]
+          }
+
+          summary = bulletPoints
         } catch (err) {
           console.warn('Summarize failed:', err)
           summary = [summary]
         }
       } else {
         // Keep full summary as plain text
-        summary = summary
+        summary = [summary]
       }
 
       setMessages(prev =>
@@ -100,7 +112,7 @@ export default function AiChat({ onAnswer, useContext, onContextChange, position
       setMessages(prev =>
         prev.map(m =>
           m.id === thinkingMsgId
-            ? { ...m, content: `Error: ${errMsg}`, thinking: false }
+            ? { ...m, content: [errMsg], thinking: false }
             : m
         )
       )
@@ -164,4 +176,39 @@ export default function AiChat({ onAnswer, useContext, onContextChange, position
       </div>
     </>
   )
+}
+
+/**
+ * Clean bullet point text by removing JSON/markdown wrappers
+ */
+function cleanBullet(text) {
+  if (!text) return ''
+
+  // Remove markdown code block markers
+  text = text.replace(/^```json\s*/i, '').replace(/```\s*$/, '')
+  text = text.replace(/^```\s*/i, '').replace(/```\s*$/, '')
+
+  // Remove JSON quotes and array formatting
+  text = text.replace(/^"/, '').replace(/",$/, '')
+  text = text.replace(/\[\s*/, '').replace(/\s*\]/, '')
+
+  // Remove "summary": [ prefix
+  text = text.replace(/^[\s\[\{]*"?summary"?\s*:\s*\[\s*/i, '')
+  text = text.replace(/\s*\]\s*[\}\]]*$/, '')
+
+  // Decode escaped quotes and newlines
+  text = text.replace(/\\"/g, '"').replace(/\\n/g, ' ')
+
+  // Clean up extra quotes
+  text = text.replace(/^"+/, '').replace(/"+$/, '')
+
+  // Trim whitespace
+  text = text.trim()
+
+  // If starts with bullet, keep it; otherwise add one
+  if (!text.startsWith('•')) {
+    text = '• ' + text
+  }
+
+  return text
 }
