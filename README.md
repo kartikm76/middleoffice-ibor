@@ -162,16 +162,16 @@ Swiss stocks (NESN, ROG, NOVN) are stored in CHF.
 
 ```bash
 # 1. Start infra (Colima + PostgreSQL container)
-./scripts/1_infra_start.sh
+./ibor-starter/1_infra_start.sh
 
 # 2. Load schema + all 23 CSVs + promote to ibor.* tables
-./scripts/2_data_bootstrap.sh
+./ibor-starter/2_data_bootstrap.sh
 
 # 3. Start Spring Boot + AI Gateway
-./scripts/3_services_start.sh
+./ibor-starter/3_services_start.sh
 
 # 4. Verify everything works
-./scripts/4_smoke_test.sh
+./ibor-starter/4_smoke_test.sh
 ```
 
 Then open:
@@ -282,15 +282,15 @@ Account-level position filtering is a Phase 2 item.
 
 ```bash
 # Full reload from scratch
-./scripts/data_etl.sh full
+./ibor-starter/data_etl.sh full
 
 # Individual phases
-./scripts/data_etl.sh init_infra     # schema only
-./scripts/data_etl.sh load_staging   # CSVs -> stg.*
-./scripts/data_etl.sh load_main      # stg.* -> ibor.*
+./ibor-starter/data_etl.sh init_infra     # schema only
+./ibor-starter/data_etl.sh load_staging   # CSVs -> stg.*
+./ibor-starter/data_etl.sh load_main      # stg.* -> ibor.*
 ```
 
-See `scripts/README.md` for the full CSV-to-table mapping.
+See `ibor-starter/README.md` for the full CSV-to-table mapping.
 
 ---
 
@@ -317,7 +317,7 @@ middleoffice-ibor/
 ├── db/
 │   ├── init/             SQL scripts 01-06 (schema, loaders, helpers, views)
 │   └── data/             23 CSV seed files + stg_mapping.json
-├── scripts/
+├── ibor-starter/
 │   ├── data_etl.sh       ETL entry point (replaces load_all.sh)
 │   ├── 1_infra_start.sh
 │   ├── 2_data_bootstrap.sh

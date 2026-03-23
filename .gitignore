@@ -19,8 +19,8 @@ ibor-ai-gateway/.env
 ui/dist/
 ui/node_modules/
 
-# Local requirements/documentation (keep locally only)
-Requirements.txt
+# Internal (local-only) files and documentation
+/internal/
 
 # Claude Code IDE
 .claude/
