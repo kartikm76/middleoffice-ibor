@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-PROJECT_ROOT="/Users/kartikmakker/Kartik_Workspace/middleoffice-ibor"
+PROJECT_ROOT="/Users/kartikmakker/Kartik_Workspace/ibor-analyst"
 PROJECT_DIR="$PROJECT_ROOT/ai-gateway"
 VENV_PATH="$PROJECT_DIR/.venv"
 IDEA_NEW_WINDOW=${1:-false}

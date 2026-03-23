@@ -297,7 +297,7 @@ See `ibor-starter/README.md` for the full CSV-to-table mapping.
 ## Project Structure
 
 ```
-middleoffice-ibor/
+ibor-analyst/
 ├── ibor-middleware/          Spring Boot REST API (Java 23, Maven, jOOQ)
 ├── ibor-ai-gateway/           FastAPI AI gateway (Python 3.13, uv)
 │   ├── src/ai_gateway/
