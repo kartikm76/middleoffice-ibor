@@ -268,11 +268,11 @@ Account-level position filtering is a Phase 2 item.
 
 ## Configuration
 
-**AI Gateway** (`ai-gateway/`):
+**AI Gateway** (`ibor-ai-gateway/`):
 - `config.yaml` — non-secret config (model name, API base URL, etc.)
 - `.env` — secrets: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` (for RAG embeddings)
 
-**Spring Boot** (`ibor-server/`):
+**Spring Boot** (`ibor-middleware/`):
 - `src/main/resources/application.yml` — DB connection, server port
 - `src/main/resources/application-test.yml` — test overrides
 
@@ -298,8 +298,8 @@ See `scripts/README.md` for the full CSV-to-table mapping.
 
 ```
 middleoffice-ibor/
-├── ibor-server/          Spring Boot REST API (Java 23, Maven, jOOQ)
-├── ai-gateway/           FastAPI AI gateway (Python 3.13, uv)
+├── ibor-middleware/          Spring Boot REST API (Java 23, Maven, jOOQ)
+├── ibor-ai-gateway/           FastAPI AI gateway (Python 3.13, uv)
 │   ├── src/ai_gateway/
 │   │   ├── service/
 │   │   │   ├── llm_service.py     Octopus orchestrator (two-stage fan-out)

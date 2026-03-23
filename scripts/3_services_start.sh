@@ -36,7 +36,7 @@ if curl -sf "http://localhost:${SPRING_PORT}/actuator/health" > /dev/null 2>&1; 
     ok "Spring Boot already running"
 else
     info "Starting Spring Boot (log → $SPRING_LOG)..."
-    JAVA_HOME="$JAVA_HOME_BIN" mvn -f "$ROOT/ibor-server/pom.xml" \
+    JAVA_HOME="$JAVA_HOME_BIN" mvn -f "$ROOT/ibor-middleware/pom.xml" \
         spring-boot:run > "$SPRING_LOG" 2>&1 &
     echo "  PID: $!"
     info "Waiting for Spring Boot..."
@@ -49,10 +49,10 @@ info "Checking AI Gateway..."
 if curl -sf "http://localhost:${GATEWAY_PORT}/health" > /dev/null 2>&1; then
     ok "AI Gateway already running"
 else
-    [[ -f "$ROOT/ai-gateway/.env" ]] \
-        || fail "ai-gateway/.env not found — copy .env.example and set OPENAI_API_KEY"
+    [[ -f "$ROOT/ibor-ai-gateway/.env" ]] \
+        || fail "ibor-ai-gateway/.env not found — copy .env.example and set OPENAI_API_KEY"
     info "Starting AI Gateway (log → $GATEWAY_LOG)..."
-    cd "$ROOT/ai-gateway"
+    cd "$ROOT/ibor-ai-gateway"
     uv run uvicorn ai_gateway.main:app --host 127.0.0.1 --port "$GATEWAY_PORT" \
         > "$GATEWAY_LOG" 2>&1 &
     echo "  PID: $!"

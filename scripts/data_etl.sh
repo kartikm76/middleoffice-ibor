@@ -18,8 +18,8 @@ DB_USER="${DB_USER:-ibor}"
 USE_COMPOSE="${USE_COMPOSE:-true}"      # true|false
 SERVICE="${SERVICE:-postgres}"          # docker-compose service name
 CONTAINER="${CONTAINER:-}"              # if blank, we'll auto-detect
-INIT_DIR="${INIT_DIR:-$ROOT/db/init}"  # host path to SQL init scripts
-DATA_DIR="${DATA_DIR:-$ROOT/db/data}"  # host path to CSVs
+INIT_DIR="${INIT_DIR:-$ROOT/ibor-db/init}"  # host path to SQL init scripts
+DATA_DIR="${DATA_DIR:-$ROOT/ibor-db/data}"  # host path to CSVs
 MAPPING_JSON="${MAPPING_JSON:-$DATA_DIR/stg_mapping.json}"
 PGHOST_OVERRIDE="${PGHOST_OVERRIDE:-}"
 

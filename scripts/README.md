@@ -39,7 +39,7 @@ Expected output:
 
 **What it does:** Calls `scripts/data_etl.sh full` which runs three phases in sequence:
 
-1. **init_infra** — applies all 6 SQL scripts (`db/init/01_*.sql` to `06_*.sql`):
+1. **init_infra** — applies all 6 SQL scripts (`ibor-db/init/01_*.sql` to `06_*.sql`):
    DROP/CREATE schemas, all dim/fact tables, staging tables, loader functions, helpers, views
 2. **load_staging** — COPYs all 23 CSVs into `stg.*` tables using `db/data/stg_mapping.json`
 3. **load_main** — calls `ibor.run_all_loaders()` which promotes `stg.*` to `ibor.*` dims and facts,
@@ -101,7 +101,7 @@ JAVA_HOME=$(/usr/libexec/java_home -v 23) mvn spring-boot:run
 **AI Gateway:**
 
 ```bash
-cd ai-gateway
+cd ibor-ai-gateway
 PYTHONPATH=src .venv/bin/python3 -m uvicorn ai_gateway.main:app \
   --host 127.0.0.1 --port 8000 --reload
 ```
@@ -136,7 +136,7 @@ PYTHONPATH=src .venv/bin/python3 -m uvicorn ai_gateway.main:app \
 scripts/data_etl.sh <mode>
 
 Modes:
-  init_infra   -- Apply db/init/01 through 06 SQL scripts
+  init_infra   -- Apply ibor-db/init/01 through 06 SQL scripts
   load_staging -- COPY all CSVs in stg_mapping.json into stg.*
   load_main    -- Run ibor.run_all_loaders() to promote stg.* -> ibor.*
   full         -- init_infra + load_staging + load_main
@@ -180,5 +180,5 @@ Modes:
 | `PostgreSQL not ready` | `docker compose up -d` then wait ~10s |
 | `Data not found (empty [])` | `./scripts/2_data_bootstrap.sh --force` |
 | `Spring Boot won't start` | Needs Java 21+. Use `JAVA_HOME=$(/usr/libexec/java_home -v 23) mvn spring-boot:run` |
-| `AI Gateway missing key error` | Check `ai-gateway/.env` has `ANTHROPIC_API_KEY=sk-ant-...` |
+| `AI Gateway missing key error` | Check `ibor-ai-gateway/.env` has `ANTHROPIC_API_KEY=sk-ant-...` |
 | `Positions return only 1 row` | asOf date has no snapshot -- uses latest-on-or-before logic |

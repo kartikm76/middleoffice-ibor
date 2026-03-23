@@ -13,7 +13,7 @@
 
 # Secrets — never commit
 **/.env
-ai-gateway/.env
+ibor-ai-gateway/.env
 
 # UI build output
 ui/dist/
