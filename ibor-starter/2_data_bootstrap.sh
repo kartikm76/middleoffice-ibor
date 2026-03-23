@@ -38,7 +38,7 @@ fi
 
 # ── Run ETL ────────────────────────────────────────────────────────────────────
 info "Running full ETL (schema → staging → curated)..."
-bash "$ROOT/scripts/data_etl.sh" full
+bash "$ROOT/ibor-starter/data_etl.sh" full
 
 # ── Verify ────────────────────────────────────────────────────────────────────
 info "Verifying loaded data..."
