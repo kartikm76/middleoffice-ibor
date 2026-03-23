@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 
 const TYPE_COLORS = {
   EQUITY: '#4a9eff',
@@ -17,12 +17,14 @@ function formatAum(value) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value)
 }
 
-function computeAssetMix(positions) {
+function computeAssetMix(positions, mode) {
   const totals = {}
   let grand = 0
   for (const p of positions) {
     const type = p.instrumentType || p.type || 'OTHER'
-    const val = Math.abs(p.mktValue ?? p.marketValue ?? 0)
+    const rawMv = Math.abs(p.mktValue ?? p.marketValue ?? 0)
+    const mult = p.contractMultiplier ?? 1
+    const val = mode === 'notional' ? rawMv : (mult > 1 ? rawMv / mult : rawMv)
     totals[type] = (totals[type] || 0) + val
     grand += val
   }
@@ -32,8 +34,9 @@ function computeAssetMix(positions) {
     .sort((a, b) => b.amount - a.amount)
 }
 
-export default function PortfolioSnapshot({ positions, totalAum, snapDate, asOf, portfolioCode, loading }) {
-  const assetMix = computeAssetMix(positions)
+export default function PortfolioSnapshot({ positions, totalAum, snapDate, asOf, portfolioCode, loading, pnlDelta }) {
+  const [mixMode, setMixMode] = useState('capital')
+  const assetMix = computeAssetMix(positions, mixMode)
   const portfolioId = (positions[0] && (positions[0].portfolioId || positions[0].portfolio)) || portfolioCode || 'P-ALPHA'
 
   if (loading) {
@@ -58,6 +61,17 @@ export default function PortfolioSnapshot({ positions, totalAum, snapDate, asOf,
         <div className="sidebar-aum">{formatAum(totalAum)}</div>
       </div>
 
+      {/* P&L Delta */}
+      {pnlDelta != null && (
+        <div className="sidebar-section">
+          <div className="sidebar-label">Daily P&L</div>
+          <div className="pnl-delta-card" style={{ color: pnlDelta >= 0 ? 'var(--green)' : 'var(--red)' }}>
+            <span className="pnl-delta-arrow">{pnlDelta >= 0 ? '▲' : '▼'}</span>
+            {formatAum(Math.abs(pnlDelta))}
+          </div>
+        </div>
+      )}
+
       {/* Dates */}
       <div className="sidebar-section">
         <div className="sidebar-label">As of</div>
@@ -71,6 +85,20 @@ export default function PortfolioSnapshot({ positions, totalAum, snapDate, asOf,
       {/* Asset Mix */}
       <div className="sidebar-section">
         <div className="sidebar-label">Asset Mix</div>
+        <div className="mix-mode-toggle">
+          <button
+            className={`mix-mode-btn ${mixMode === 'capital' ? 'active' : ''}`}
+            onClick={() => setMixMode('capital')}
+          >
+            Capital
+          </button>
+          <button
+            className={`mix-mode-btn ${mixMode === 'notional' ? 'active' : ''}`}
+            onClick={() => setMixMode('notional')}
+          >
+            Notional
+          </button>
+        </div>
         {assetMix.length === 0 && (
           <div style={{ fontSize: 13, color: 'var(--text-3)', marginTop: '4px' }}>No data</div>
         )}

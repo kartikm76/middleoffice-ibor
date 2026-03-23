@@ -6,7 +6,7 @@ const PORTFOLIO_OPTIONS = [
   { value: 'P-ALPHA', label: 'P-ALPHA' },
 ]
 
-export default function ControlsBar({ asOf, portfolioCode, onDateChange, onPortfolioChange }) {
+export default function ControlsBar({ asOf, portfolioCode, onDateChange, onPortfolioChange, onSubmit, loading }) {
   return (
     <div className="controls-bar">
       <div className="controls-group">
@@ -16,7 +16,7 @@ export default function ControlsBar({ asOf, portfolioCode, onDateChange, onPortf
           format="YYYY-MM-DD"
           onChange={(date) => { if (date) onDateChange(date.format('YYYY-MM-DD')) }}
           allowClear={false}
-          style={{ width: 160 }}
+          style={{ width: 160, marginLeft: 12 }}
           size="small"
         />
       </div>
@@ -27,10 +27,18 @@ export default function ControlsBar({ asOf, portfolioCode, onDateChange, onPortf
           value={portfolioCode}
           options={PORTFOLIO_OPTIONS}
           onChange={onPortfolioChange}
-          style={{ width: 140 }}
+          style={{ width: 140, marginLeft: 12 }}
           size="small"
         />
       </div>
+
+      <button
+        className="submit-btn"
+        onClick={onSubmit}
+        disabled={loading}
+      >
+        {loading ? 'Loading...' : 'Submit'}
+      </button>
     </div>
   )
 }

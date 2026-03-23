@@ -46,6 +46,8 @@ public class PositionIntegrationH2Test {
                 LocalDate.parse("2025-01-02"),
                 "P-ALPHA",
                 "EQ-IBM",
+                "IBM Corp.",
+                "IBM",
                 "EQUITY",
                 new BigDecimal("100"),
                 new BigDecimal("150.25"),

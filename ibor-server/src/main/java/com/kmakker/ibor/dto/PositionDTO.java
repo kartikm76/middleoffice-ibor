@@ -12,6 +12,8 @@ public record PositionDTO (
     @JsonProperty("snapDate") LocalDate snapDate,
     @JsonProperty("portfolioId") String portfolioId,
     @JsonProperty("instrumentId") String instrumentId,
+    @JsonProperty("instrumentName") String instrumentName,
+    @JsonProperty("ticker") String ticker,
     @JsonProperty("instrumentType") String instrumentType,
     @JsonProperty("netQty") BigDecimal netQty,
     @JsonProperty("price") BigDecimal price,

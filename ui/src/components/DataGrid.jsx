@@ -71,8 +71,11 @@ function Grid({ columnDefs, rowData, theme }) {
   const defaultColDef = useMemo(() => ({ resizable: true, sortable: true }), [])
   const gridClass = theme === 'dark' ? 'ag-theme-alpine-dark' : 'ag-theme-alpine'
 
+  // Use autoHeight for small datasets, normal for large
+  const useAutoHeight = rowData.length > 0 && rowData.length <= 20
+
   return (
-    <div className={gridClass} style={{ flex: 1, width: '100%' }}>
+    <div className={gridClass} style={useAutoHeight ? { width: '100%' } : { height: '100%', width: '100%' }}>
       <AgGridReact
         columnDefs={columnDefs}
         rowData={rowData}
@@ -80,6 +83,7 @@ function Grid({ columnDefs, rowData, theme }) {
         rowHeight={30}
         headerHeight={36}
         suppressCellFocus
+        domLayout={useAutoHeight ? 'autoHeight' : undefined}
       />
     </div>
   )
@@ -119,22 +123,37 @@ function PnlPanel({ pnl }) {
   )
 }
 
-export default function DataGrid({ gridState, onTabChange, theme }) {
+export default function DataGrid({ gridState, onTabChange, theme, selectedTickers }) {
   const { tab, data } = gridState
 
   const positionRows = useMemo(() => {
     const raw = data?.positions?.positions || data?.positions || []
-    return Array.isArray(raw) ? raw.map(normalizePosition) : []
-  }, [data])
+    let rows = Array.isArray(raw) ? raw.map(normalizePosition) : []
+    // Filter by selectedTickers if provided - check if instrument contains any selected ticker
+    if (selectedTickers && selectedTickers.length > 0) {
+      rows = rows.filter(p => {
+        const inst = (p.instrument || '').toUpperCase()
+        return selectedTickers.some(t => inst.includes(t))
+      })
+    }
+    return rows
+  }, [data, selectedTickers])
 
   const tradeRows = useMemo(() => {
     const raw = data?.trades?.transactions || data?.trades || []
-    return Array.isArray(raw) ? raw.map(normalizeTrade) : []
-  }, [data])
+    let rows = Array.isArray(raw) ? raw.map(normalizeTrade) : []
+    // Filter by selectedTickers if provided
+    if (selectedTickers && selectedTickers.length > 0) {
+      rows = rows.filter(t => selectedTickers.includes((t.tradeId || t.instrument || '')?.toUpperCase()))
+    }
+    return rows
+  }, [data, selectedTickers])
 
   const priceRows = useMemo(() => {
     const raw = data?.prices?.prices || data?.prices || []
-    return Array.isArray(raw) ? raw.map(normalizePrice) : []
+    let rows = Array.isArray(raw) ? raw.map(normalizePrice) : []
+    // Note: price rows typically don't have an instrument field in this structure
+    return rows
   }, [data])
 
   const pnlData = data?.pnl || null

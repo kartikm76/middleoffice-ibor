@@ -6,3 +6,10 @@ export async function fetchPositions(portfolioCode, asOf, page = 1, size = 500) 
   })
   return data
 }
+
+export async function fetchPositionDetail(portfolioCode, instrumentCode, asOf) {
+  const { data } = await axios.get(`/api/positions/${portfolioCode}/${instrumentCode}`, {
+    params: { asOf }
+  })
+  return data
+}

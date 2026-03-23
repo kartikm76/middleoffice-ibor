@@ -83,8 +83,10 @@ public class JodiPositionsRepository {
               GROUP BY a.instrument_vid
             ),
             i AS (
-              SELECT di.instrument_vid, di.instrument_code, di.instrument_type, di.currency_code
+              SELECT di.instrument_vid, di.instrument_code, di.instrument_name, di.instrument_type, di.currency_code,
+                     eq.ticker
               FROM ibor.dim_instrument di
+              LEFT JOIN ibor.dim_instrument_equity eq ON eq.instrument_vid = di.instrument_vid
               WHERE di.valid_from <= ?           -- 6
                 AND di.valid_to   >= ?           -- 7
             ),
@@ -120,6 +122,8 @@ public class JodiPositionsRepository {
               latest_snap.snap_date               AS snap_date,
               (SELECT portfolio_code FROM p)      AS portfolio_id,
               i.instrument_code                   AS instrument_id,
+              i.instrument_name                   AS instrument_name,
+              COALESCE(i.ticker, i.instrument_code) AS ticker,
               i.instrument_type                   AS instrument_type,
               cur.net_qty                         AS net_qty,
               pp.price                            AS price,
@@ -171,6 +175,8 @@ public class JodiPositionsRepository {
                 record.get("snap_date", LocalDate.class),
                 record.get("portfolio_id", String.class),
                 record.get("instrument_id", String.class),
+                record.get("instrument_name", String.class),
+                record.get("ticker", String.class),
                 record.get("instrument_type", String.class),
                 record.get("net_qty", BigDecimal.class),
                 record.get("price", BigDecimal.class),

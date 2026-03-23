@@ -17,3 +17,12 @@
 
 -- 6) Views
 \i docker/db/init/06_vw_instrument.sql
+
+-- 7) Partitioning for dim_instrument
+\i docker/db/init/07_dim_instrument_partitioning.sql
+
+-- 8) Analytics schema (portfolio returns, holdings, attribution)
+\i docker/db/init/08_analytics_schema.sql
+
+-- 9) Conversation & Document RAG schema (Phase 1 & 2)
+\i docker/db/init/09_conversation_rag_schema.sql
