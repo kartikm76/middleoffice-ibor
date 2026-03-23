@@ -18,3 +18,9 @@ ai-gateway/.env
 # UI build output
 ui/dist/
 ui/node_modules/
+
+# Local requirements/documentation (keep locally only)
+Requirements.txt
+
+# Claude Code IDE
+.claude/
