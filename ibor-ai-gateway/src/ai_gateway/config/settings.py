@@ -20,8 +20,8 @@ class Settings:
     """
     structured_api_base: str    = os.getenv("STRUCTURED_API_BASE", _cfg["ibor"]["api_base"])
     verify_ssl: bool             = os.getenv("VERIFY_SSL", str(_cfg["ibor"]["verify_ssl"])).lower() == "true"
-    anthropic_model: str         = os.getenv("ANTHROPIC_MODEL", _cfg["anthropic"]["model"])
-    openai_embedding_model: str  = os.getenv("OPENAI_EMBEDDING_MODEL", _cfg["openai"]["embedding_model"])
+    anthropic_model: str         = os.getenv("ANTHROPIC_MODEL", _cfg["llm"]["primary"]["name"])
+    openai_embedding_model: str  = os.getenv("OPENAI_EMBEDDING_MODEL", _cfg["embeddings"]["primary"]["name"])
     pg_dsn: str                  = os.getenv("PG_DSN", _cfg["database"]["dsn"])
     anthropic_api_key: str       = os.getenv("ANTHROPIC_API_KEY", "")
     openai_api_key: str          = os.getenv("OPENAI_API_KEY", "")  # still used for RAG embeddings

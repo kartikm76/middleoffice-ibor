@@ -113,6 +113,7 @@ init_infra() {
   apply_sql "$INIT_DIR/06_vw_instrument.sql"
   apply_sql "$INIT_DIR/07_dim_instrument_partitioning.sql"
   apply_sql "$INIT_DIR/08_analytics_schema.sql"
+  apply_sql "$INIT_DIR/09_conversation_rag_schema.sql"
   say "Schemas & functions applied."
 }
 

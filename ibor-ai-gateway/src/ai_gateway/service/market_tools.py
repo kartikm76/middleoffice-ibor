@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from typing import Any, Dict, List, Optional, Tuple
+from datetime import datetime, timedelta
 
 import yfinance as yf
 
@@ -20,23 +21,79 @@ class MarketTools:
 
     All methods use asyncio.to_thread (yfinance is synchronous).
     All failures are caught and returned as partial data — never raises.
+
+    Includes in-memory cache for market data (5-minute TTL).
     """
+
+    def __init__(self, cache_ttl_minutes: int = 5):
+        """Initialize market tools with optional caching.
+
+        Args:
+            cache_ttl_minutes: Cache time-to-live in minutes (default 5)
+        """
+        self._cache: Dict[str, Tuple[Dict[str, Any], datetime]] = {}
+        self._cache_ttl = timedelta(minutes=cache_ttl_minutes)
+        log.info(f"MarketTools initialized with {cache_ttl_minutes}-minute cache")
+
+    def _get_cache(self, key: str) -> Optional[Dict[str, Any]]:
+        """Get value from cache if not expired."""
+        if key in self._cache:
+            value, timestamp = self._cache[key]
+            if datetime.now() - timestamp < self._cache_ttl:
+                log.debug(f"Cache hit: {key}")
+                return value
+            else:
+                del self._cache[key]  # Expired
+        return None
+
+    def _set_cache(self, key: str, value: Dict[str, Any]) -> None:
+        """Store value in cache with current timestamp."""
+        self._cache[key] = (value, datetime.now())
+        log.debug(f"Cache set: {key}")
 
     async def get_market_snapshot(self, ticker: str) -> Dict[str, Any]:
         """Current price, change%, volume, fundamentals, and analyst rating."""
-        return await asyncio.to_thread(self._snapshot_sync, ticker)
+        cache_key = f"snapshot:{ticker}"
+        cached = self._get_cache(cache_key)
+        if cached:
+            return cached
+
+        result = await asyncio.to_thread(self._snapshot_sync, ticker)
+        self._set_cache(cache_key, result)
+        return result
 
     async def get_news(self, ticker: str) -> Dict[str, Any]:
         """Last 5 news headlines for a ticker."""
-        return await asyncio.to_thread(self._news_sync, ticker)
+        cache_key = f"news:{ticker}"
+        cached = self._get_cache(cache_key)
+        if cached:
+            return cached
+
+        result = await asyncio.to_thread(self._news_sync, ticker)
+        self._set_cache(cache_key, result)
+        return result
 
     async def get_earnings(self, ticker: str) -> Dict[str, Any]:
         """Next earnings date + EPS estimates."""
-        return await asyncio.to_thread(self._earnings_sync, ticker)
+        cache_key = f"earnings:{ticker}"
+        cached = self._get_cache(cache_key)
+        if cached:
+            return cached
+
+        result = await asyncio.to_thread(self._earnings_sync, ticker)
+        self._set_cache(cache_key, result)
+        return result
 
     async def get_macro_snapshot(self) -> Dict[str, Any]:
         """S&P 500, VIX, and 10Y yield — always fetched for portfolio-level questions."""
-        return await asyncio.to_thread(self._macro_sync)
+        cache_key = "macro:global"
+        cached = self._get_cache(cache_key)
+        if cached:
+            return cached
+
+        result = await asyncio.to_thread(self._macro_sync)
+        self._set_cache(cache_key, result)
+        return result
 
     # --- synchronous implementations (run in thread pool) ---
 

@@ -1,12 +1,14 @@
 from __future__ import annotations
+from uuid import uuid4
 from fastapi import APIRouter, HTTPException
 from ai_gateway.model.schemas import (
     ChatRequest, IborAnswer, PnLRequest, PositionsRequest, PricesRequest, TradesRequest,
 )
 from ai_gateway.service.ibor_service import IborService
 from ai_gateway.service.llm_service import LlmService
+from ai_gateway.service.conversation_service import ConversationService
 
-def make_analyst_router(service: IborService, agent: LlmService) -> APIRouter:
+def make_analyst_router(service: IborService, agent: LlmService, conversation_service: ConversationService = None) -> APIRouter:
     router = APIRouter(prefix="/analyst", tags=["Analyst"])
 
     @router.post("/positions", response_model=IborAnswer)
@@ -66,7 +68,45 @@ def make_analyst_router(service: IborService, agent: LlmService) -> APIRouter:
     @router.post("/chat", response_model=IborAnswer)
     async def chat(body: ChatRequest) -> IborAnswer:
         try:
-            return await agent.chat(question=body.question)
+            # Auto-capture context (behind-the-scenes)
+            portfolio_code = body.portfolio_code or "P-ALPHA"
+            analyst_id = "analyst-default"  # In production: extract from JWT/auth context
+            session_id = str(uuid4())  # Auto-generate fresh session per request
+            market_contents = body.market_contents if body.market_contents is not None else True
+
+            # Load or create conversation (if service is available)
+            conversation_id = None
+            if conversation_service:
+                conv = await conversation_service.get_or_create_conversation(
+                    analyst_id=analyst_id,
+                    session_id=session_id,
+                    context_type="portfolio",
+                    context_id=portfolio_code
+                )
+                conversation_id = conv["conversation_id"]
+
+                # Save analyst question to conversation
+                await conversation_service.save_message(
+                    conversation_id=conversation_id,
+                    role="analyst",
+                    content=body.question
+                )
+
+            # Call LLM to generate response (pass market_contents flag)
+            response = await agent.chat(
+                question=body.question,
+                market_contents=market_contents
+            )
+
+            # Save AI response to conversation
+            if conversation_service and conversation_id:
+                await conversation_service.save_message(
+                    conversation_id=conversation_id,
+                    role="ai",
+                    content=response.summary or ""
+                )
+
+            return response
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
 

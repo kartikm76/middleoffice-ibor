@@ -1,62 +1,103 @@
 -- =====================================================================
 -- CONVERSATION & DOCUMENT RAG SCHEMA
 -- AI analyst conversation memory + multi-turn support
--- Phase 1: Conversation RAG
+-- Phase 1: Conversation RAG (generic context design for multi-use)
 -- Phase 2: Document RAG (chunking, embedding, source attribution)
+-- Phase 3+: Extended to recon, corporate actions, risk management, etc.
 -- =====================================================================
 
 -- Create conv schema for all conversation/document-related tables
-DROP SCHEMA IF EXISTS conv CASCADE;
+-- DROP SCHEMA IF EXISTS conv CASCADE;
 CREATE SCHEMA conv;
 
 -- =====================================================================
--- PHASE 1: CONVERSATION STORAGE & RAG
+-- PHASE 1: CONVERSATION STORAGE & RAG (GENERIC CONTEXT)
 -- =====================================================================
 
 -- ---------------------------
 -- Conversation table (memory for multi-turn resumption)
+-- Generic context design: supports portfolio, instruments, accounts, recon, corp-actions, etc.
+--
+-- Isolation: Composite unique key (analyst_id, session_id) ensures:
+--   - Same analyst can have multiple browser sessions (e.g., laptop + phone)
+--   - Different analysts can have the same session_id without collision
+--   - Each conversation is isolated per analyst + browser session pair
 -- ---------------------------
 CREATE TABLE conv.conversation (
   conversation_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+  -- Composite key for isolation: each analyst can have multiple sessions
   analyst_id VARCHAR NOT NULL,
-  portfolio_id VARCHAR,                    -- optional: what portfolio is this about?
+  session_id UUID NOT NULL,                -- browser session identifier (unique per analyst)
+
+  -- Generic context (not just portfolio-specific)
+  context_type VARCHAR(50) NOT NULL,       -- "portfolio", "instrument", "account", "recon", "corp_action", etc.
+  context_id VARCHAR(50) NOT NULL,         -- portfolio_code, instrument_code, account_code, etc.
+
   title TEXT,                              -- auto-generated or analyst-provided
-  messages JSONB NOT NULL,                 -- full chat history in order
+  messages JSONB NOT NULL DEFAULT '[]'::jsonb,  -- full chat history in order
                                            -- format: [{"role": "user|assistant", "content": "..."}]
   message_count INT DEFAULT 0,             -- count of messages for quick checks
   last_embedding_checkpoint TIMESTAMP,     -- when we last embedded (for delta tracking)
+  pending_embedding BOOLEAN DEFAULT false, -- marked for next 5-min re-embedding cycle
+
   created_at TIMESTAMP NOT NULL DEFAULT now(),
-  updated_at TIMESTAMP NOT NULL DEFAULT now()
+  updated_at TIMESTAMP NOT NULL DEFAULT now(),
+
+  -- Composite unique key: analyst can't have duplicate sessions
+  UNIQUE(analyst_id, session_id)
 );
 
+-- Indices for common queries
+-- Critical: analyst_id should be first (filtering starts with analyst isolation)
+CREATE INDEX idx_conv_analyst_session ON conv.conversation(analyst_id, session_id);
+CREATE INDEX idx_conv_context ON conv.conversation(context_type, context_id);
 CREATE INDEX idx_conv_analyst ON conv.conversation(analyst_id);
-CREATE INDEX idx_conv_portfolio ON conv.conversation(portfolio_id);
+CREATE INDEX idx_conv_pending_embedding ON conv.conversation(pending_embedding) WHERE pending_embedding = true;
 CREATE INDEX idx_conv_created ON conv.conversation(created_at DESC);
 
 -- ---------------------------
 -- Conversation embeddings (pgvector for semantic search)
+-- Delta-based: only new messages since last embedding
 -- ---------------------------
 CREATE TABLE conv.conversation_embedding (
-  conversation_id UUID PRIMARY KEY REFERENCES conv.conversation(conversation_id) ON DELETE CASCADE,
-  embedding VECTOR(1536) NOT NULL,        -- OpenAI text-embedding-3-small or sentence-transformers
-  embedding_model VARCHAR DEFAULT 'text-embedding-3-small',
+  embedding_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  conversation_id UUID NOT NULL REFERENCES conv.conversation(conversation_id) ON DELETE CASCADE,
+
+  -- Same context as conversation (for filtering RAG searches)
+  context_type VARCHAR(50) NOT NULL,
+  context_id VARCHAR(50) NOT NULL,
+  analyst_id VARCHAR NOT NULL,
+
+  conversation_summary TEXT NOT NULL,     -- delta: summary of new messages since last embedding
+  embedding VECTOR(384) NOT NULL,         -- sentence-transformers all-MiniLM-L6-v2 (384 dims)
+  embedding_model VARCHAR DEFAULT 'all-MiniLM-L6-v2',
+
   created_at TIMESTAMP NOT NULL DEFAULT now(),
   updated_at TIMESTAMP NOT NULL DEFAULT now()
 );
 
+-- Indices
+CREATE INDEX idx_conv_emb_conversation ON conv.conversation_embedding(conversation_id);
+CREATE INDEX idx_conv_emb_context ON conv.conversation_embedding(context_type, context_id);
+-- Critical: vector search index for semantic similarity
 CREATE INDEX idx_conv_emb_similarity ON conv.conversation_embedding USING ivfflat (embedding vector_cosine_ops);
 
 -- =====================================================================
--- PHASE 2: DOCUMENT STORAGE & CHUNKED RAG
+-- PHASE 2: DOCUMENT STORAGE & CHUNKED RAG (DEFERRED - not in Phase 1)
 -- =====================================================================
 
 -- ---------------------------
--- Document metadata
+-- Document metadata (Phase 2+)
 -- ---------------------------
 CREATE TABLE conv.document (
   document_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   analyst_id VARCHAR NOT NULL,
-  portfolio_id VARCHAR,
+
+  -- Generic context (same pattern as conversations)
+  context_type VARCHAR(50) NOT NULL,      -- "portfolio", "instrument", etc.
+  context_id VARCHAR(50) NOT NULL,
+
   document_type VARCHAR NOT NULL,         -- earnings_pdf, regulatory, internal_memo, market_research
   title TEXT NOT NULL,                    -- "AAPL Q4 2025 Earnings"
   description TEXT,
@@ -70,7 +111,7 @@ CREATE TABLE conv.document (
 );
 
 CREATE INDEX idx_doc_analyst ON conv.document(analyst_id);
-CREATE INDEX idx_doc_portfolio ON conv.document(portfolio_id);
+CREATE INDEX idx_doc_context ON conv.document(context_type, context_id);
 CREATE INDEX idx_doc_type ON conv.document(document_type);
 CREATE INDEX idx_doc_created ON conv.document(created_at DESC);
 
@@ -195,29 +236,33 @@ FOR EACH ROW EXECUTE FUNCTION conv.audit_document();
 CREATE OR REPLACE VIEW conv.vw_conversation_status AS
 SELECT
   c.conversation_id,
+  c.session_id,
+  c.context_type,
+  c.context_id,
   c.analyst_id,
-  c.portfolio_id,
   c.title,
   c.message_count,
   c.created_at,
   c.updated_at,
   c.last_embedding_checkpoint,
-  COALESCE(ce.embedding IS NOT NULL, false) AS has_embedding,
+  c.pending_embedding,
+  (SELECT COUNT(*) FROM conv.conversation_embedding ce WHERE ce.conversation_id = c.conversation_id) AS embedding_count,
   EXTRACT(EPOCH FROM (now() - c.last_embedding_checkpoint)) / 60 AS minutes_since_embedding,
   CASE
     WHEN c.last_embedding_checkpoint IS NULL THEN 'NEEDS_INITIAL_EMBEDDING'
+    WHEN c.pending_embedding = true THEN 'MARKED_FOR_EMBEDDING'
     WHEN EXTRACT(EPOCH FROM (now() - c.last_embedding_checkpoint)) / 60 > 5 THEN 'NEEDS_DELTA_EMBEDDING'
     ELSE 'CURRENT'
   END AS embedding_status
-FROM conv.conversation c
-LEFT JOIN conv.conversation_embedding ce ON ce.conversation_id = c.conversation_id;
+FROM conv.conversation c;
 
 -- View: documents with chunk counts and embedding status
 CREATE OR REPLACE VIEW conv.vw_document_status AS
 SELECT
   d.document_id,
   d.analyst_id,
-  d.portfolio_id,
+  d.context_type,
+  d.context_id,
   d.title,
   d.document_type,
   COUNT(dc.chunk_id) AS chunk_count,
@@ -227,7 +272,7 @@ SELECT
 FROM conv.document d
 LEFT JOIN conv.document_chunk dc ON dc.document_id = d.document_id
 LEFT JOIN conv.document_chunk_embedding dce ON dce.chunk_id = dc.chunk_id
-GROUP BY d.document_id, d.analyst_id, d.portfolio_id, d.title, d.document_type, d.created_at, d.updated_at;
+GROUP BY d.document_id, d.analyst_id, d.context_type, d.context_id, d.title, d.document_type, d.created_at, d.updated_at;
 
 -- =====================================================================
 -- PERMISSIONS & GRANTS (if using role-based access)

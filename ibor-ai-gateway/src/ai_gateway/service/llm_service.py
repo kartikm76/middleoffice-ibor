@@ -22,6 +22,7 @@ log = logging.getLogger(__name__)
 _INTENT_SYSTEM = """\
 You are analyzing a portfolio manager's question to determine what data to fetch.
 Today's date: {today}
+Market context enabled: {market_contents}
 
 Available IBOR tools:
 - positions: portfolio holdings as-of a date         (portfolioCode, asOf required; optional: accountCode)
@@ -29,14 +30,17 @@ Available IBOR tools:
 - trades:    transaction history for one instrument  (portfolioCode, instrumentCode, asOf required)
 - prices:    historical price series                 (instrumentCode, fromDate, toDate required)
 
+CRITICAL: You MUST call positions for ANY portfolio-level analysis or discussion.
+
 Call plan_query with your analysis plan. Rules:
-- Use positions for "what do I hold", "exposure", "portfolio overview" questions.
+- Call positions if the question mentions: my portfolio, my positions, my holdings, concentration, diversification, allocation, exposure, risk, rebalancing, or any portfolio-level assessment. This is non-negotiable.
 - Use pnl for "performance", "P&L", "how did I do" — default prior to yesterday.
-- Use trades ONLY when a specific instrument is named in the question.
+- Use trades ONLY when a specific instrument code is named in the question.
 - Use prices ONLY when price history is explicitly requested.
 - explicit_tickers: ONLY tickers the user directly names (e.g. "AAPL", "MSFT"). Do NOT infer.
-- needs_macro: true for rate, FX, macro, or portfolio-level performance questions.
-- Extract portfolioCode from the question if present; otherwise omit it from args.
+- needs_macro: {market_contents}. Set to false if market context is disabled.
+- Always include "portfolioCode": "P-ALPHA" if no other portfolio is mentioned.
+- Extract portfolioCode from the question if present; otherwise default to "P-ALPHA".
 """
 
 _SYNTHESIS_SYSTEM = """\
@@ -159,14 +163,14 @@ class LlmService:
             log.warning("summarize failed: %s", exc)
             return {"summary": [verbose_text[:200] + "..."]}
 
-    async def chat(self, question: str) -> IborAnswer:
+    async def chat(self, question: str, market_contents: bool = True) -> IborAnswer:
         today = date.today()
 
         # ── Step 1: intent parse ──────────────────────────────────────────
-        plan = await self._parse_intent(question, today)
+        plan = await self._parse_intent(question, today, market_contents)
         ibor_calls: List[Dict[str, Any]] = plan.get("ibor_calls", [])
         explicit_tickers: List[str] = [t.upper() for t in plan.get("explicit_tickers", [])]
-        needs_macro: bool = plan.get("needs_macro", True)
+        needs_macro: bool = plan.get("needs_macro", False) if not market_contents else plan.get("needs_macro", True)
 
         if not ibor_calls:
             return IborAnswer(
@@ -181,36 +185,42 @@ class LlmService:
         ]
 
         # ── Step 2: fan-out ───────────────────────────────────────────────
-        if explicit_tickers:
-            # True octopus: IBOR + market all at once
-            market_labels, market_coros = self._build_market_coros(explicit_tickers, needs_macro)
-            all_results = await asyncio.gather(*ibor_coros, *market_coros, return_exceptions=True)
-            ibor_results: List[Any] = list(all_results[: len(ibor_coros)])
-            market_raw: List[Any] = list(all_results[len(ibor_coros) :])
-        else:
-            # Two-stage: IBOR → extract tickers → market
-            ibor_results = list(await asyncio.gather(*ibor_coros, return_exceptions=True))
-            tickers = _extract_equity_tickers(ibor_results)
-            market_labels, market_coros = self._build_market_coros(tickers, needs_macro)
-            market_raw = (
-                list(await asyncio.gather(*market_coros, return_exceptions=True))
-                if market_coros
-                else []
-            )
+        market_context: Dict[str, Any] = {}
 
-        market_context = _collate_market(market_labels, market_raw)
+        if market_contents:
+            # Market data enabled: fetch market context
+            if explicit_tickers:
+                # True octopus: IBOR + market all at once
+                market_labels, market_coros = self._build_market_coros(explicit_tickers, needs_macro)
+                all_results = await asyncio.gather(*ibor_coros, *market_coros, return_exceptions=True)
+                ibor_results: List[Any] = list(all_results[: len(ibor_coros)])
+                market_raw: List[Any] = list(all_results[len(ibor_coros) :])
+            else:
+                # Two-stage: IBOR → extract tickers → market
+                ibor_results = list(await asyncio.gather(*ibor_coros, return_exceptions=True))
+                tickers = _extract_equity_tickers(ibor_results)
+                market_labels, market_coros = self._build_market_coros(tickers, needs_macro)
+                market_raw = (
+                    list(await asyncio.gather(*market_coros, return_exceptions=True))
+                    if market_coros
+                    else []
+                )
+            market_context = _collate_market(market_labels, market_raw)
+        else:
+            # Market data disabled: IBOR only
+            ibor_results = list(await asyncio.gather(*ibor_coros, return_exceptions=True))
 
         # ── Step 3: synthesis ─────────────────────────────────────────────
         return await self._synthesize(question, today, ibor_calls, ibor_results, market_context)
 
     # ── Intent parsing ────────────────────────────────────────────────────
 
-    async def _parse_intent(self, question: str, today: date) -> Dict[str, Any]:
+    async def _parse_intent(self, question: str, today: date, market_contents: bool = True) -> Dict[str, Any]:
         try:
             resp = await self._anthropic.messages.create(
                 model=self._model,
                 max_tokens=1024,
-                system=_INTENT_SYSTEM.format(today=today),
+                system=_INTENT_SYSTEM.format(today=today, market_contents=market_contents),
                 messages=[{"role": "user", "content": question}],
                 tools=[_PLAN_TOOL],
                 tool_choice={"type": "tool", "name": "plan_query"},

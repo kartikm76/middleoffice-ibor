@@ -54,3 +54,5 @@ class PnLRequest(BaseModel):
 
 class ChatRequest(BaseModel):
     question: str
+    portfolio_code: Optional[str] = None
+    market_contents: Optional[bool] = True  # whether to fetch yfinance + market data
