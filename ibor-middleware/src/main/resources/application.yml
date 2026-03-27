@@ -5,6 +5,12 @@ spring:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/ibor}
     username: ${DB_USER:ibor}
     password: ${DB_PASSWORD:ibor}
+    hikari:
+      maximum-pool-size: 25  # Increased from default 10 for concurrent requests
+      minimum-idle: 5
+      connection-timeout: 10000  # 10 seconds
+      idle-timeout: 600000  # 10 minutes
+      max-lifetime: 1800000  # 30 minutes
   jooq:
     sql-dialect: POSTGRES
 openai:
