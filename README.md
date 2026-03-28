@@ -168,13 +168,13 @@ dim_instrument  dim_portfolio  dim_account  dim_account_portfolio  dim_currency 
                 └───────────────────┼───────────────────┴────────────────┘
 ```
 
-**RAG Schema (rag_* — Semantic Search & Conversation Memory):**
+**Conversation & RAG Schema (conv.* — Semantic Search & Multi-Turn Memory):**
 
 ```
-rag_document  rag_position_notes  rag_conversation  rag_index
-      │              │                  │              │
-      └──────────────┴──────────────────┴──────────────┘
-              (pgvector embeddings)
+conv.conversation  conv.conversation_embedding  conv.document  conv.document_chunk_embedding
+       │                     │                        │                    │
+       └─────────────────────┴────────────────────────┴────────────────────┘
+                     (pgvector embeddings for semantic search)
 ```
 
 **Core Dimension Tables (SCD2 with history tracking):**
@@ -199,13 +199,13 @@ The schema also includes specialized sub-tables (`dim_instrument_equity`, `dim_i
 
 Temporary landing zone for CSV data before validation and promotion to ibor.*. Cleared after each ETL run. See `ibor-db/init/03-staging.sql` for field mappings.
 
-### `rag_*` — Semantic Search & Conversation Memory (Phase 1+2)
+### `conv.*` — Conversation Memory & Semantic Search (Phase 1+2)
 
-pgvector embeddings for RAG and conversation context:
-- `rag_conversation` — Multi-turn conversation history with embeddings (Phase 1 - Active)
-- `rag_document` — User-uploaded documents with embeddings (Phase 2 - Coming)
-- `rag_position_notes` — Analyst notes and annotations with embeddings (Phase 2 - Coming)
-- `rag_index` — Embedding vectors and metadata for similarity search
+pgvector-backed conversation management and document RAG:
+- `conv.conversation` — Multi-turn conversation history with context isolation (Phase 1 - Active)
+- `conv.conversation_embedding` — Semantic embeddings for multi-turn similarity search (Phase 1 - Active)
+- `conv.document` — User-uploaded documents (Phase 2 - Coming)
+- `conv.document_chunk` — Chunked document segments with embeddings (Phase 2 - Coming)
 
 ---
 
@@ -251,17 +251,14 @@ CSV files → stg.* (staging) → ibor.* (curated) → fact_* & dim_* tables
 
 ### Market Data Coverage
 
-**Instruments (201 total, 8 asset classes):**
-- **121 Equities**
-  - **US:** AAPL, MSFT, NVDA, GOOGL, META, AMZN, TSLA, JPM, BAC, GS, JNJ, UNH, XOM, CVX, BA, and 80+ more
-  - **European:** SAP, ASML, LVMH, Shell, AstraZeneca, and more (GBP/CHF where applicable)
-  - **Indices:** SPY, QQQ, GLD, TLT, and other sector/index ETFs
+**Instruments (201 total, 6 asset classes):**
+- **121 Equities** — US (AAPL, MSFT, NVDA, GOOGL, META, AMZN, TSLA, JPM, BAC, GS, JNJ, UNH, XOM, CVX, BA, and 80+ more), European (SAP, ASML, LVMH, Shell, AstraZeneca, etc.)
 - **25 Bonds**
   - **US Treasury:** 3M, 6M, 1Y, 2Y, 3Y, 5Y, 7Y, 10Y, 20Y, 30Y (10 instruments)
-  - **Corporate:** Issued by AAPL, MSFT, JPM, Goldman Sachs, Apple, Bank of America, Coca-Cola, Exxon, J&J, Pfizer, P&G, UnitedHealth, Walmart, Eli Lilly, IBM (15 instruments)
+  - **Corporate:** Apple, Microsoft, JPMorgan Chase, Goldman Sachs, Bank of America, Coca-Cola, Exxon, Johnson & Johnson, Pfizer, Procter & Gamble, UnitedHealth, Walmart, Eli Lilly, IBM, Amazon (15 instruments)
 - **25 Futures** — Interest rate futures, equity index futures, commodity futures
 - **10 Options** — Equity options on major US stocks
-- **10 Indices** — S&P 500, Nasdaq-100, Russell 2000, FTSE 100, DAX, Euro Stoxx 50, etc.
+- **10 Indices** — S&P 500, Nasdaq-100, Dow Jones Industrial Average, Russell 2000, CBOE VIX, US Dollar Index, FTSE 100, DAX 40, CAC 40, Nikkei 225
 - **10 FX Pairs** — Direct (EUR/USD, GBP/USD, JPY/USD, etc.), inverse, and cross rates (CHF/EUR, GBP/JPY, etc.)
 
 **Price Data (1,604 snapshots):**
