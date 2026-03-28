@@ -79,6 +79,7 @@ export default function AiChat({ onAnswer, useContext, onContextChange, position
   ])
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
+  const [marketContents, setMarketContents] = useState(true)  // Toggle for market data
   const bottomRef = useRef(null)
   const textareaRef = useRef(null)
   const nextId = useRef(2)
@@ -122,7 +123,11 @@ export default function AiChat({ onAnswer, useContext, onContextChange, position
     try {
       const { data } = await axios.post(
         '/analyst/chat',
-        { question },
+        {
+          question,
+          portfolio_code: 'P-ALPHA',
+          market_contents: marketContents
+        },
         { headers: { 'Content-Type': 'application/json' } }
       )
 
@@ -172,14 +177,23 @@ export default function AiChat({ onAnswer, useContext, onContextChange, position
       </div>
 
       <div className="context-checkbox">
-        <input
-          type="checkbox"
-          id="context-toggle"
-          checked={useContext}
-          onChange={(e) => onContextChange(e.target.checked)}
-        />
-        <label htmlFor="context-toggle">
-          Include market context
+        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+          <input
+            type="checkbox"
+            id="market-toggle"
+            checked={marketContents}
+            onChange={(e) => setMarketContents(e.target.checked)}
+          />
+          <span>Include market data</span>
+        </label>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <input
+            type="checkbox"
+            id="context-toggle"
+            checked={useContext}
+            onChange={(e) => onContextChange(e.target.checked)}
+          />
+          <span>Portfolio context</span>
         </label>
       </div>
 
