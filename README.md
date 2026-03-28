@@ -190,27 +190,44 @@ Three schemas in PostgreSQL:
 
 ### `ibor.*` — Curated Facts & Dimensions (Ground Truth)
 
-**Dimensions (SCD2 with history tracking):**
-- `dim_instrument` — 201 instruments (equities, bonds, futures, options, FX, indices)
-- `dim_portfolio` — Portfolio masters (P-ALPHA, etc.)
-- `dim_account` — Trading accounts (ACCT-PRIME, ACCT-CUSTODY)
-- `dim_account_portfolio` — Many-to-many join
-- `dim_currency` — FX codes (USD, EUR, GBP, CHF, etc.)
-- `dim_strategy` — Investment strategies
+**STAR Schema ER Diagram:**
 
-**Facts (immutable, append-only):**
-- `fact_position_snapshot` — Positions as-of date (snapshot table)
-- `fact_price` — Historical prices (1,580 rows across 8 dates, 2025-01-02 to 2026-03-20)
-- `fact_fx_rate` — FX rates (216 rows, same 8 dates)
-- `fact_trade` — Transaction history with full lineage
+```
+                              dim_portfolio
+                                    │
+                     ┌──────────────┼──────────────┐
+                     │              │              │
+               dim_account    dim_strategy    dim_currency
+                     │              │              │
+                     └──────────────┼──────────────┘
+                                    │
+           ┌────────────────────────┼────────────────────────┐
+           │                        │                        │
+    fact_position_snapshot   fact_price_fxrate       fact_trade
+           │                        │                        │
+           └────────────────────────┼────────────────────────┘
+                                    │
+                              dim_instrument
+```
+
+**Dimension Tables (SCD2 with history tracking):**
+- `dim_instrument` — Master instruments (equities, bonds, futures, options, FX, indices)
+- `dim_portfolio` — Portfolio masters and attributes
+- `dim_account` — Trading accounts and characteristics
+- `dim_account_portfolio` — Many-to-many join between accounts and portfolios
+- `dim_currency` — Currency codes and properties
+- `dim_strategy` — Investment strategy definitions
+
+**Fact Tables (immutable, append-only):**
+- `fact_position_snapshot` — Holdings at portfolio level, as-of dates
+- `fact_price` — Historical prices across time
+- `fact_fx_rate` — Foreign exchange rates across time
+- `fact_trade` — Transaction history with full lineage at account level
 - `fact_cash_event` — Dividends, interest, cash transfers
 
 ### `stg.*` — Staging Tables (ETL Landing Zone)
 
-Temporary tables where CSV data lands before validation and promotion to ibor.*:
-- `stg_instrument`, `stg_portfolio`, `stg_account`, `stg_price`, `stg_trade`, etc.
-
-**Cleared after each ETL run.** See `ibor-db/init/03-staging.sql` for mapping.
+Temporary landing zone for CSV data before validation and promotion to ibor.*. Cleared after each ETL run. See `ibor-db/init/03-staging.sql` for field mappings.
 
 ### `rag_*` — pgvector Embeddings (Phase 2)
 
@@ -218,22 +235,6 @@ Reserved for semantic search and document RAG:
 - `rag_document` — Embedded research documents
 - `rag_position_notes` — Embedded analyst notes
 - `rag_index` — Embedding vectors (stored in pgvector)
-
-### Data Model
-
-```
-dim_portfolio (P-ALPHA)
-      └── dim_account_portfolio (many-to-many)
-            └── dim_account (ACCT-PRIME, ACCT-CUSTODY)
-                  └── fact_trade (account-level transactions)
-
-dim_instrument (EQ-AAPL, BOND-US10Y, etc.)
-      └── fact_position_snapshot (portfolio-level holdings)
-      └── fact_price (historical time series)
-      └── fact_fx_rate (currency conversions)
-```
-
-**Positions** are stored at portfolio level. **Trades** are stored at account level.
 
 ---
 
@@ -279,9 +280,9 @@ CSV files → stg.* (staging) → ibor.* (curated) → fact_* & dim_* tables
 
 ### Data Quality
 
-- **201 instruments** across 8 asset classes
-- **1,580 price rows** with real Yahoo Finance historical data
-- **216 FX rate rows** (major pairs, same 8 dates)
+- **Comprehensive instruments** across 8 asset classes
+- **Price history** with real Yahoo Finance historical data
+- **FX rates** for major currency pairs
 - **Bond prices** computed from real treasury yields using standard bond pricing
 - **Trades** with full account-level lineage and cash event tracking
 
