@@ -16,8 +16,8 @@
 ibor-ai-gateway/.env
 
 # UI build output
-ui/dist/
-ui/node_modules/
+ibor-ui/dist/
+ibor-ui/node_modules/
 
 # Internal (local-only) files and documentation
 /internal/
