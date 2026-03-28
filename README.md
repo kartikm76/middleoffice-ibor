@@ -8,6 +8,24 @@ This platform pairs deterministic financial data (from PostgreSQL) with an AI an
 
 ---
 
+## Retrieval-Augmented Generation (RAG): A Two-Phase Story
+
+### Phase 1 (Current): Conversation Context & Memory
+IBOR Analyst uses **RAG with pgvector embeddings** to maintain conversational context:
+- **Conversation Memory** — Every question and answer is embedded and stored
+- **Multi-turn Context** — Semantic search retrieves relevant past conversations
+- **Contextual Awareness** — Follow-up questions understand prior context without re-stating it
+- **Storage** — PostgreSQL with pgvector for semantic similarity search
+
+This enables coherent, context-aware multi-turn conversations where the AI analyst remembers what you've discussed.
+
+### Phase 2 (Coming): Document-Augmented Analysis
+RAG expands to user-uploaded documents (regulatory filings, research, earnings reports) blended with IBOR data and market context. See [Phase 2: Document-Augmented Answers](#next-steps) below.
+
+**The Vision:** Start with conversation memory (Phase 1), evolve to document-rich analysis (Phase 2), create a unified intelligence layer over your portfolio data.
+
+---
+
 ## How It Works
 
 ### The Octopus Fan-Out Pattern
@@ -392,11 +410,28 @@ http://localhost:8000/docs             (FastAPI)
 
 ---
 
-## Next Steps
+## Roadmap: The RAG Evolution
 
-### Phase 2: Document-Augmented Answers
+### ✅ Phase 1 (Current): Conversation-Context RAG
 
-The next phase will introduce **document upload and RAG (Retrieval-Augmented Generation)** capabilities to deliver more focused, contextually-rich answers:
+**What's Live:**
+- Multi-turn conversations with semantic memory (powered by pgvector)
+- The AI analyst remembers prior questions and context
+- Conversation history is embedded and searchable
+- Each interaction builds on previous context
+
+**Key Capability:** You can have natural follow-up conversations without restating context. The system understands what you've discussed before.
+
+**Under the Hood:**
+- pgvector embeddings store conversation turns
+- Semantic search retrieves relevant past interactions
+- Context is injected into each new question for coherent responses
+
+---
+
+### 🔮 Phase 2 (Coming): Document-Augmented Analysis
+
+The next phase extends RAG to **user-uploaded documents** for richer, more contextual answers:
 
 **What You'll Be Able to Upload:**
 - **Regulatory Documents** — SEC filings, prospectuses, compliance memos
@@ -406,19 +441,36 @@ The next phase will introduce **document upload and RAG (Retrieval-Augmented Gen
 
 **How It Works:**
 1. Upload documents directly to the platform
-2. Documents are embedded and stored in pgvector (semantic search)
-3. When you ask a question, IBOR Analyst searches your uploaded docs
+2. Documents are embedded and stored in pgvector (semantic search alongside conversations)
+3. When you ask a question, IBOR Analyst searches:
+   - Your conversation history (context memory from Phase 1)
+   - Your uploaded documents (new in Phase 2)
+   - Live market data (existing)
 4. Answers blend:
    - **Numbers** from IBOR (ground truth positions, trades, P&L)
    - **Market Commentary** from Yahoo Finance (prices, news, earnings)
    - **Your Documents** (regulatory insights, research, proprietary analysis)
+   - **Conversation Context** (from Phase 1 memory)
 
 **Result:**
-Analyst-grade responses that combine your portfolio data, live market context, AND your internal research — all in one coherent narrative.
+Truly analyst-grade responses that combine your portfolio data, live market context, internal research, AND conversational context — all in one coherent narrative.
 
-Example: *"What's the risk profile of my XYZ position?"*
+**Example:** *"What's the risk profile of my XYZ position?"*
 - Returns position details from IBOR
 - Includes current price action and analyst sentiment from markets
 - Layers in regulatory concerns from SEC filings you uploaded
 - References your internal research notes on the position
 - Surfaces earnings date and guidance from documents
+- Remembers previous discussions about this position (Phase 1 context)
+
+---
+
+## The Unified Vision
+
+Phase 1 established conversation memory as the foundation of contextual understanding. Phase 2 extends this to documents, creating a unified **RAG layer** that synthesizes:
+- **Deterministic data** (IBOR from SQL)
+- **Market intelligence** (Yahoo Finance, real-time)
+- **Conversational memory** (pgvector embeddings, Phase 1)
+- **Document knowledge** (user uploads, pgvector embeddings, Phase 2)
+
+All blended by Claude into analyst-grade prose that sounds human, stays grounded in facts, and adapts to your context.
