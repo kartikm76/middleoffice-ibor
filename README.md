@@ -249,11 +249,16 @@ CSV files → stg.* (staging) → ibor.* (curated) → fact_* & dim_* tables
 
 **Details:** See `ibor-db/init/` for SQL scripts and `ibor-starter/README.md` for CSV field mappings.
 
-### Data Coverage & Market Data
+### Market Data Coverage
 
 **Instruments (201 total, 8 asset classes):**
-- **121 Equities** — US (AAPL, MSFT, NVDA, GOOGL, META, AMZN, TSLA, JPM, BAC, GS, JNJ, UNH, XOM, CVX, BA, etc.), European (SAP, ASML, LVMH, Shell, AstraZeneca, etc.), indices (SPY, QQQ, GLD, TLT, etc.)
-- **25 Bonds** — 10 US Treasury (3M, 6M, 1Y, 2Y, 3Y, 5Y, 7Y, 10Y, 20Y, 30Y), 15 Corporate (issued by AAPL, MSFT, JPM, Goldman Sachs, Apple, Bank of America, Coca-Cola, Exxon, J&J, Pfizer, P&G, UnitedHealth, Walmart, Eli Lilly, IBM)
+- **121 Equities**
+  - **US:** AAPL, MSFT, NVDA, GOOGL, META, AMZN, TSLA, JPM, BAC, GS, JNJ, UNH, XOM, CVX, BA, and 80+ more
+  - **European:** SAP, ASML, LVMH, Shell, AstraZeneca, and more (GBP/CHF where applicable)
+  - **Indices:** SPY, QQQ, GLD, TLT, and other sector/index ETFs
+- **25 Bonds**
+  - **US Treasury:** 3M, 6M, 1Y, 2Y, 3Y, 5Y, 7Y, 10Y, 20Y, 30Y (10 instruments)
+  - **Corporate:** Issued by AAPL, MSFT, JPM, Goldman Sachs, Apple, Bank of America, Coca-Cola, Exxon, J&J, Pfizer, P&G, UnitedHealth, Walmart, Eli Lilly, IBM (15 instruments)
 - **25 Futures** — Interest rate futures, equity index futures, commodity futures
 - **10 Options** — Equity options on major US stocks
 - **10 Indices** — S&P 500, Nasdaq-100, Russell 2000, FTSE 100, DAX, Euro Stoxx 50, etc.
@@ -289,6 +294,23 @@ http://localhost:5173
 curl -X POST http://localhost:8000/analyst/chat \
   -H "Content-Type: application/json" \
   -d '{"question":"What are the top positions?"}'
+```
+
+### Quick Test
+
+```bash
+# Health checks
+curl http://localhost:8000/health
+curl http://localhost:8080/health
+
+# Sample chat query
+curl -X POST http://localhost:8000/analyst/chat \
+  -H "Content-Type: application/json" \
+  -d '{"question":"Analyze the Technology strategy"}'
+
+# Swagger UI
+http://localhost:8080/swagger-ui.html  (Spring Boot)
+http://localhost:8000/docs             (FastAPI)
 ```
 
 ### API Curl Commands
@@ -401,23 +423,6 @@ psql -h localhost -U postgres -d ibor -c "SELECT 1"
 ```
 
 </details>
-
-### Testing
-
-```bash
-# Health checks
-curl http://localhost:8000/health
-curl http://localhost:8080/health
-
-# Sample chat query
-curl -X POST http://localhost:8000/analyst/chat \
-  -H "Content-Type: application/json" \
-  -d '{"question":"Analyze the Technology strategy"}'
-
-# Swagger UI
-http://localhost:8080/swagger-ui.html  (Spring Boot)
-http://localhost:8000/docs             (FastAPI)
-```
 
 ---
 
