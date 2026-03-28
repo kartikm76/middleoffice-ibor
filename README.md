@@ -81,21 +81,6 @@ RAG expands to user-uploaded documents (regulatory filings, research, earnings r
 
 ---
 
-## Stack
-
-| Layer | Technology |
-|-------|-----------|
-| **Database** | PostgreSQL 16 + pgvector (embeddings-ready) |
-| **REST API** | Spring Boot 3.5.5, Java 21, jOOQ 3.18.7, Maven |
-| **AI Gateway** | FastAPI 0.119+, Python 3.13, Anthropic SDK, uv (frozen deps) |
-| **LLM** | Claude Sonnet 4.6 (claude-sonnet-4-6) |
-| **Market Data** | yfinance 0.2.50+ (Yahoo Finance) |
-| **Frontend** | React 18, Vite, AG Grid, Ant Design |
-| **Concurrency** | Parallel threads for simultaneous data fetching |
-| **Deployment** | Docker Compose (local), Railway.app (production) |
-
----
-
 ## How It Works
 
 ### The Octopus Fan-Out Pattern
@@ -299,6 +284,21 @@ CSV files → stg.* (staging) → ibor.* (curated) → fact_* & dim_* tables
 **Trades (61 executed trades):**
 - **Account-level lineage:** Execution ID, trade date, settlement date, quantity, price, gross/net amounts
 - **Full event tracking:** Cash settlements, dividends, interest accruals via fact_cash_event
+
+---
+
+## Stack
+
+| Layer | Technology |
+|-------|-----------|
+| **Database** | PostgreSQL 16 + pgvector (embeddings-ready) |
+| **REST API** | Spring Boot 3.5.5, Java 21, jOOQ 3.18.7, Maven |
+| **AI Gateway** | FastAPI 0.119+, Python 3.13, Anthropic SDK, uv (frozen deps) |
+| **LLM** | Claude Sonnet 4.6 (claude-sonnet-4-6) |
+| **Market Data** | yfinance 0.2.50+ (Yahoo Finance) |
+| **Frontend** | React 18, Vite, AG Grid, Ant Design |
+| **Concurrency** | Parallel threads for simultaneous data fetching |
+| **Deployment** | Docker Compose (local), Railway.app (production) |
 
 ---
 
