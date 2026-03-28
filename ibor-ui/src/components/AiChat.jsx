@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import axios from 'axios'
 
 const GREETING = "Ask me about positions, trades, P&L, and market data."
-const MAX_LINES_COLLAPSED = 8
+const MAX_LINES_COLLAPSED = 30
 
 function ThinkingDots() {
   return (
@@ -177,23 +177,14 @@ export default function AiChat({ onAnswer, useContext, onContextChange, position
       </div>
 
       <div className="context-checkbox">
-        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <input
             type="checkbox"
             id="market-toggle"
             checked={marketContents}
             onChange={(e) => setMarketContents(e.target.checked)}
           />
-          <span>Include market data</span>
-        </label>
-        <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <input
-            type="checkbox"
-            id="context-toggle"
-            checked={useContext}
-            onChange={(e) => onContextChange(e.target.checked)}
-          />
-          <span>Portfolio context</span>
+          <span>Market data & sentiment</span>
         </label>
       </div>
 
@@ -246,7 +237,8 @@ function formatConciseResponse(summary, positions, totalAum, question) {
     if (tickers.length > 0) {
       relevantPositions = relevantPositions.filter(p => {
         const inst = (p.instrumentId || p.instrument || '').toUpperCase()
-        return tickers.some(t => inst.includes(t))
+        const name = (p.instrumentName || '').toUpperCase()
+        return tickers.some(t => inst.includes(t) || name.includes(t))
       })
     }
 
@@ -313,85 +305,51 @@ function formatContextResponse(summary, positions, question) {
     if (tickers.length > 0 && positions?.length > 0) {
       relevant = positions.filter(p => {
         const inst = (p.instrumentId || p.instrument || '').toUpperCase()
-        return tickers.some(t => inst.includes(t))
+        const name = (p.instrumentName || '').toUpperCase()
+        return tickers.some(t => inst.includes(t) || name.includes(t))
       })
     }
 
     if (relevant.length > 0) {
-      lines.push({ level: 0, text: `${tickers.join(', ')} — ${relevant.length} holding(s):` })
-      relevant.slice(0, 5).forEach(pos => {
+      lines.push({ level: 0, text: `📊 ${tickers.join(', ')} — ${relevant.length} holding(s)` })
+      relevant.slice(0, 8).forEach(pos => {
         const name = pos.instrumentName || pos.instrumentId || pos.instrument || '?'
         const qty = pos.netQty ?? pos.quantity ?? 0
         const price = pos.price ?? 0
         const mktValue = pos.mktValue ?? pos.marketValue ?? 0
-        const dir = qty > 0 ? 'LONG' : qty < 0 ? 'SHORT' : 'FLAT'
-        lines.push({ level: 1, text: `${name} · ${dir} ${Math.abs(qty).toLocaleString()} @ $${price.toFixed(2)}` })
-        lines.push({ level: 2, text: `Mkt Value: ${fmtUsd(mktValue)}` })
+        const dir = qty > 0 ? '📈' : qty < 0 ? '📉' : '➖'
+        lines.push({ level: 1, text: `${dir} ${name}: ${Math.abs(qty).toLocaleString()} @ $${price.toFixed(2)} = ${fmtUsd(mktValue)}` })
       })
-      if (relevant.length > 5) {
-        lines.push({ level: 1, text: `… and ${relevant.length - 5} more` })
+      if (relevant.length > 8) {
+        lines.push({ level: 1, text: `+ ${relevant.length - 8} more` })
       }
       const total = relevant.reduce((s, p) => s + (p.mktValue ?? p.marketValue ?? 0), 0)
-      lines.push({ level: 0, text: `Total: ${fmtUsd(total)}` })
+      lines.push({ level: 0, text: `💰 Total: ${fmtUsd(total)}` })
       lines.push({ level: 0, text: '' })
     } else if (tickers.length > 0) {
       lines.push({ level: 0, text: `No holdings found for ${tickers.join(', ')}.` })
       lines.push({ level: 0, text: '' })
     }
 
-    // Split into sentences and aggressively filter
+    // Extract key bullet points from summary
     const sentences = text.split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 10)
 
-    // 1. Remove sentences that contradict our verified position data
-    const contradictionPatterns = /\b(zero (positions?|shares|trades|holdings|exposure|market value)|no (positions?|shares|holdings?|trades?|current|exposure|market value)|not found|does not hold|don't hold|do not hold|not .* in your|no .* in your (portfolio|ibor|book)|book is flat|flat on|no .* attributed|no .* on record)\b/i
+    // Filter and extract 3-5 most important market points
+    const keyPatterns = [
+      /down\s+\d+%|up\s+\d+%|trading\s+at|notional|concentration|dominates|pressure|opportunity|risk/i
+    ]
 
-    // 2. Remove portfolio analysis / opinion sentences — keep only market commentary
-    // The AI should describe market conditions, not lecture about the user's portfolio
-    const portfolioOpinionPatterns = /\b(whatever exposure|forward.looking|purely forward|portfolio review|you may be considering|your ibor shows|your book|consider(ing)?.*position|no reason to|nothing to review|no data to analyze)\b/i
+    const keyPoints = sentences.filter((s, idx) => {
+      // Get first few sentences and key ones mentioning numbers/risks
+      if (idx < 2) return true
+      return keyPatterns.some(p => p.test(s))
+    }).slice(0, 5)
 
-    const filteredSentences = sentences.filter(s => {
-      if (relevant.length > 0 && contradictionPatterns.test(s)) return false
-      if (portfolioOpinionPatterns.test(s)) return false
-      return true
-    })
-
-    // Keep first 4 market-relevant sentences
-    const kept = filteredSentences.slice(0, 4).join(' ')
-    if (kept) {
-      lines.push({ level: 0, text: 'Market Context:' })
-      const words = kept.split(' ')
-      let currentLine = ''
-      words.forEach(word => {
-        if ((currentLine + ' ' + word).length > 70 && currentLine) {
-          lines.push({ level: 1, text: currentLine.trim() })
-          currentLine = word
-        } else {
-          currentLine += ' ' + word
-        }
+    if (keyPoints.length > 0) {
+      lines.push({ level: 0, text: '🎯 Key Points:' })
+      keyPoints.forEach(point => {
+        lines.push({ level: 1, text: `• ${point}` })
       })
-      if (currentLine.trim()) {
-        lines.push({ level: 1, text: currentLine.trim() })
-      }
-    }
-
-    // Remaining sentences go behind "Show more"
-    if (filteredSentences.length > 4) {
-      lines.push({ level: 0, text: '' })
-      lines.push({ level: 0, text: 'Additional context:' })
-      const remaining = filteredSentences.slice(4).join(' ')
-      const words2 = remaining.split(' ')
-      let line2 = ''
-      words2.forEach(word => {
-        if ((line2 + ' ' + word).length > 70 && line2) {
-          lines.push({ level: 1, text: line2.trim() })
-          line2 = word
-        } else {
-          line2 += ' ' + word
-        }
-      })
-      if (line2.trim()) {
-        lines.push({ level: 1, text: line2.trim() })
-      }
     }
 
     return lines.length > 0 ? lines : [{ level: 0, text: text.substring(0, 300) }]

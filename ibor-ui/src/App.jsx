@@ -111,7 +111,7 @@ function VerticalDivider({ onDrag }) {
   )
 }
 
-const DEFAULT_AS_OF = '2026-03-20'
+const DEFAULT_AS_OF = '2026-03-19'  // Data available for this date
 const DEFAULT_PORTFOLIO = 'P-ALPHA'
 
 export default function App() {
@@ -125,9 +125,9 @@ export default function App() {
   const [pnlDelta, setPnlDelta] = useState(null)
   const [loading, setLoading] = useState(false)
   const [loadingTxns, setLoadingTxns] = useState(false)
-  const [useContext, setUseContext] = useState(false)
+  const [useContext, setUseContext] = useState(true) // Always use portfolio context by default
   const [selectedInstrument, setSelectedInstrument] = useState(null)
-  const [chatWidth, setChatWidth] = useState(380)
+  const [chatWidth, setChatWidth] = useState(550)  // Wider default for better readability
   const contentRef = useRef(null)
 
   useEffect(() => {
@@ -141,7 +141,7 @@ export default function App() {
     if (!contentRef.current) return
     const rect = contentRef.current.getBoundingClientRect()
     const newWidth = rect.right - clientX
-    if (newWidth >= 280 && newWidth <= 600) {
+    if (newWidth >= 300 && newWidth <= 900) {  // Allow wider chat window
       setChatWidth(newWidth)
     }
   }, [])

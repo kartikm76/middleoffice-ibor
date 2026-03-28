@@ -43,7 +43,7 @@ Call plan_query with your analysis plan. Rules:
 - Extract portfolioCode from the question if present; otherwise default to "P-ALPHA".
 """
 
-_SYNTHESIS_SYSTEM = """\
+_SYNTHESIS_SYSTEM_WITH_MARKET = """\
 You are a senior portfolio analyst at an asset management firm.
 A portfolio manager has asked a question. You have two categories of data:
 
@@ -67,6 +67,31 @@ Rules:
 - If any data is missing or a tool failed, mention it once briefly and continue.
 - Today's date: {today}
 """
+
+_SYNTHESIS_SYSTEM_IBOR_ONLY = """\
+You are a senior portfolio analyst at an asset management firm.
+A portfolio manager has asked a question. You are working with IBOR data ONLY.
+
+IBOR DATA — your firm's investment book of record. These numbers are ground truth.
+Use them exactly as given. Never estimate, round, or invent figures.
+
+Write a 4-8 sentence analyst-grade response that:
+1. Answers the question directly using IBOR facts (exact numbers, positions, dates).
+2. Analyzes the positions, composition, and risk factors visible in IBOR.
+3. Surfaces the key risk or opportunity the PM should be aware of.
+4. Ends with a clear, actionable observation.
+
+Rules:
+- IBOR numbers are gospel — never invent or estimate.
+- DO NOT reference external market data, news, or sentiment.
+- Focus exclusively on portfolio composition, sizing, and internal risk.
+- Flowing analyst prose — no bullet points, no headers.
+- Be direct and confident; the reader is a professional who manages money.
+- If analysis requires market context not available, mention it briefly then continue.
+- Today's date: {today}
+"""
+
+_SYNTHESIS_SYSTEM = _SYNTHESIS_SYSTEM_WITH_MARKET  # Default for backward compatibility
 
 # ---------------------------------------------------------------------------
 # Intent tool definition  (Anthropic format: input_schema, no type:function wrapper)
@@ -211,7 +236,7 @@ class LlmService:
             ibor_results = list(await asyncio.gather(*ibor_coros, return_exceptions=True))
 
         # ── Step 3: synthesis ─────────────────────────────────────────────
-        return await self._synthesize(question, today, ibor_calls, ibor_results, market_context)
+        return await self._synthesize(question, today, ibor_calls, ibor_results, market_context, market_contents)
 
     # ── Intent parsing ────────────────────────────────────────────────────
 
@@ -313,6 +338,7 @@ class LlmService:
         ibor_calls: List[Dict],
         ibor_results: List,
         market_context: Dict[str, Any],
+        market_contents: bool = True,
     ) -> IborAnswer:
         ibor_data: Dict[str, Any] = {}
         gaps: List[str] = []
@@ -334,10 +360,13 @@ class LlmService:
             "market_context": market_context,
         }
 
+        # Use appropriate synthesis prompt based on market_contents flag
+        synthesis_prompt = _SYNTHESIS_SYSTEM_WITH_MARKET if market_contents else _SYNTHESIS_SYSTEM_IBOR_ONLY
+
         resp = await self._anthropic.messages.create(
             model=self._model,
             max_tokens=2048,
-            system=_SYNTHESIS_SYSTEM.format(today=today),
+            system=synthesis_prompt.format(today=today),
             messages=[{"role": "user", "content": json.dumps(payload)}],
         )
         text_block = next((b for b in resp.content if b.type == "text"), None)

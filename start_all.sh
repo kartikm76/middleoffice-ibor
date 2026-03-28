@@ -53,6 +53,9 @@ fi
 info "Step 3: Starting Spring Boot..."
 cd "$ROOT/ibor-middleware"
 
+# Ensure Java 21 is used (required by project)
+export JAVA_HOME=/opt/homebrew/opt/openjdk@21
+
 # Start in background, capture PID
 mvn spring-boot:run -q > /tmp/spring-boot.log 2>&1 &
 SPRING_PID=$!
@@ -92,8 +95,15 @@ EOF
     ok "Created .env file"
 fi
 
-# Start in background
-uv run uvicorn ai_gateway.main:app --host 127.0.0.1 --port 8000 > /tmp/fastapi.log 2>&1 &
+# Ensure venv is synced with uv.lock (frozen dependencies)
+if ! .venv/bin/python -c "import anthropic" 2>/dev/null; then
+    info "Syncing Python environment from uv.lock..."
+    /opt/homebrew/bin/uv sync --frozen
+    ok "Environment synced"
+fi
+
+# Start in background using frozen venv
+PYTHONPATH="$ROOT/ibor-ai-gateway/src" .venv/bin/python -m uvicorn ai_gateway.main:app --host 127.0.0.1 --port 8000 > /tmp/fastapi.log 2>&1 &
 FASTAPI_PID=$!
 echo $FASTAPI_PID > /tmp/fastapi.pid
 
