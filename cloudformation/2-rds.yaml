@@ -1,0 +1,137 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'IBOR Analyst RDS PostgreSQL Database'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: production
+    AllowedValues:
+      - production
+      - staging
+      - development
+
+  DBInstanceClass:
+    Type: String
+    Default: db.t3.micro
+    Description: Database instance type
+    AllowedValues:
+      - db.t3.micro
+      - db.t3.small
+      - db.t3.medium
+      - db.t3.large
+
+  DBName:
+    Type: String
+    Default: ibordb
+    Description: Database name
+
+  DBUsername:
+    Type: String
+    Default: postgres
+    NoEcho: true
+    Description: Database master username
+
+  DBPassword:
+    Type: String
+    NoEcho: true
+    Description: Database master password (min 8 chars)
+    MinLength: 8
+
+  AllocatedStorage:
+    Type: Number
+    Default: 20
+    Description: Allocated storage in GB
+    MinValue: 20
+    MaxValue: 1000
+
+Resources:
+  # RDS Subnet Group
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Subnet group for IBOR RDS
+      SubnetIds:
+        - !ImportValue
+          Fn::Sub: 'ibor-${Environment}-private-subnet-1'
+        - !ImportValue
+          Fn::Sub: 'ibor-${Environment}-private-subnet-2'
+      Tags:
+        - Key: Name
+          Value: !Sub 'ibor-${Environment}-db-subnet-group'
+
+  # RDS Instance
+  IborDatabase:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Snapshot
+    Properties:
+      DBInstanceIdentifier: !Sub 'ibor-${Environment}-db'
+      Engine: postgres
+      EngineVersion: '16.1'
+      DBInstanceClass: !Ref DBInstanceClass
+      AllocatedStorage: !Ref AllocatedStorage
+      StorageType: gp3
+      StorageEncrypted: true
+      DBName: !Ref DBName
+      MasterUsername: !Ref DBUsername
+      MasterUserPassword: !Ref DBPassword
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      VPCSecurityGroups:
+        - !ImportValue
+          Fn::Sub: 'ibor-${Environment}-rds-sg'
+      MultiAZ: !If [IsProduction, true, false]
+      BackupRetentionPeriod: !If [IsProduction, 30, 7]
+      PreferredBackupWindow: '03:00-04:00'
+      PreferredMaintenanceWindow: 'sun:04:00-sun:05:00'
+      EnableIAMDatabaseAuthentication: true
+      EnableCloudwatchLogsExports:
+        - postgresql
+      DeletionProtection: !If [IsProduction, true, false]
+      Tags:
+        - Key: Name
+          Value: !Sub 'ibor-${Environment}-database'
+
+  # Parameter Group for pgvector extension
+  DBParameterGroup:
+    Type: AWS::RDS::DBParameterGroup
+    Properties:
+      Description: Custom parameter group for IBOR with pgvector support
+      Family: postgres16
+      Parameters:
+        shared_preload_libraries: 'vector'
+      Tags:
+        - Key: Name
+          Value: !Sub 'ibor-${Environment}-parameter-group'
+
+Conditions:
+  IsProduction: !Equals [!Ref Environment, 'production']
+
+Outputs:
+  DatabaseEndpoint:
+    Description: Database endpoint
+    Value: !GetAtt IborDatabase.Endpoint.Address
+    Export:
+      Name: !Sub 'ibor-${Environment}-db-endpoint'
+
+  DatabasePort:
+    Description: Database port
+    Value: !GetAtt IborDatabase.Endpoint.Port
+    Export:
+      Name: !Sub 'ibor-${Environment}-db-port'
+
+  DatabaseName:
+    Description: Database name
+    Value: !Ref DBName
+    Export:
+      Name: !Sub 'ibor-${Environment}-db-name'
+
+  DatabaseUsername:
+    Description: Database master username
+    Value: !Ref DBUsername
+    Export:
+      Name: !Sub 'ibor-${Environment}-db-username'
+
+  DatabaseDSN:
+    Description: PostgreSQL connection string
+    Value: !Sub 'postgresql://${DBUsername}:${DBPassword}@${IborDatabase.Endpoint.Address}:${IborDatabase.Endpoint.Port}/${DBName}'
+    Export:
+      Name: !Sub 'ibor-${Environment}-db-dsn'

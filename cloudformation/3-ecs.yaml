@@ -1,0 +1,356 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'IBOR Analyst ECS Cluster with Fargate Services'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: production
+    AllowedValues:
+      - production
+      - staging
+      - development
+
+  AnthropicApiKey:
+    Type: String
+    NoEcho: true
+    Description: Anthropic API key for Claude
+
+  ContainerRegistry:
+    Type: String
+    Description: ECR repository URL or Docker Hub account
+    Default: 'kartikm76'
+
+Resources:
+  # CloudWatch Log Group
+  EcsLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/ecs/ibor-${Environment}'
+      RetentionInDays: !If [IsProduction, 30, 7]
+
+  # ECS Cluster
+  IborCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Sub 'ibor-${Environment}-cluster'
+      ClusterSettings:
+        - Name: containerInsights
+          Value: enabled
+      Tags:
+        - Key: Name
+          Value: !Sub 'ibor-${Environment}-cluster'
+
+  # IAM Role for ECS Task Execution
+  EcsTaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy'
+      Policies:
+        - PolicyName: EcsTaskExecutionPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                Resource: !GetAtt EcsLogGroup.Arn
+              - Effect: Allow
+                Action:
+                  - 'ecr:GetAuthorizationToken'
+                Resource: '*'
+
+  # IAM Role for ECS Task
+  EcsTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Policies:
+        - PolicyName: EcsTaskPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                Resource: !GetAtt EcsLogGroup.Arn
+
+  # ─── Python Gateway (FastAPI) ───
+
+  PythonTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub 'ibor-${Environment}-python'
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      Cpu: '512'
+      Memory: '1024'
+      ExecutionRoleArn: !GetAtt EcsTaskExecutionRole.Arn
+      TaskRoleArn: !GetAtt EcsTaskRole.Arn
+      ContainerDefinitions:
+        - Name: ibor-python
+          Image: !Sub '${ContainerRegistry}/ibor-ai-gateway:latest'
+          PortMappings:
+            - ContainerPort: 8000
+              Protocol: tcp
+          Environment:
+            - Name: ENVIRONMENT
+              Value: !Ref Environment
+            - Name: PG_DSN
+              Value: !Sub
+                - 'postgresql://postgres:${DBPassword}@${DBEndpoint}:5432/${DBName}'
+                - DBPassword: !ImportValue
+                    Fn::Sub: 'ibor-${Environment}-db-password'
+                  DBEndpoint: !ImportValue
+                    Fn::Sub: 'ibor-${Environment}-db-endpoint'
+                  DBName: !ImportValue
+                    Fn::Sub: 'ibor-${Environment}-db-name'
+          Secrets:
+            - Name: ANTHROPIC_API_KEY
+              ValueFrom: !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:ibor/${Environment}/anthropic-api-key'
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref EcsLogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: python
+
+  PythonService:
+    Type: AWS::ECS::Service
+    DependsOn: PythonLoadBalancerRule
+    Properties:
+      ServiceName: !Sub 'ibor-${Environment}-python'
+      Cluster: !Ref IborCluster
+      TaskDefinition: !Ref PythonTaskDefinition
+      DesiredCount: 2
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          Subnets:
+            - !ImportValue
+              Fn::Sub: 'ibor-${Environment}-private-subnet-1'
+            - !ImportValue
+              Fn::Sub: 'ibor-${Environment}-private-subnet-2'
+          SecurityGroups:
+            - !ImportValue
+              Fn::Sub: 'ibor-${Environment}-ecs-sg'
+      LoadBalancers:
+        - ContainerName: ibor-python
+          ContainerPort: 8000
+          TargetGroupArn: !Ref PythonTargetGroup
+      Tags:
+        - Key: Name
+          Value: !Sub 'ibor-${Environment}-python-service'
+
+  # ─── Java Middleware (Spring Boot) ───
+
+  JavaTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub 'ibor-${Environment}-java'
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      Cpu: '1024'
+      Memory: '2048'
+      ExecutionRoleArn: !GetAtt EcsTaskExecutionRole.Arn
+      TaskRoleArn: !GetAtt EcsTaskRole.Arn
+      ContainerDefinitions:
+        - Name: ibor-java
+          Image: !Sub '${ContainerRegistry}/ibor-middleware:latest'
+          PortMappings:
+            - ContainerPort: 8080
+              Protocol: tcp
+          Environment:
+            - Name: SPRING_PROFILES_ACTIVE
+              Value: !Ref Environment
+            - Name: SPRING_DATASOURCE_URL
+              Value: !Sub
+                - 'jdbc:postgresql://${DBEndpoint}:5432/${DBName}'
+                - DBEndpoint: !ImportValue
+                    Fn::Sub: 'ibor-${Environment}-db-endpoint'
+                  DBName: !ImportValue
+                    Fn::Sub: 'ibor-${Environment}-db-name'
+            - Name: SPRING_DATASOURCE_USERNAME
+              Value: !ImportValue
+                Fn::Sub: 'ibor-${Environment}-db-username'
+          Secrets:
+            - Name: SPRING_DATASOURCE_PASSWORD
+              ValueFrom: !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:ibor/${Environment}/db-password'
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref EcsLogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: java
+
+  JavaService:
+    Type: AWS::ECS::Service
+    DependsOn: JavaLoadBalancerRule
+    Properties:
+      ServiceName: !Sub 'ibor-${Environment}-java'
+      Cluster: !Ref IborCluster
+      TaskDefinition: !Ref JavaTaskDefinition
+      DesiredCount: 2
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          Subnets:
+            - !ImportValue
+              Fn::Sub: 'ibor-${Environment}-private-subnet-1'
+            - !ImportValue
+              Fn::Sub: 'ibor-${Environment}-private-subnet-2'
+          SecurityGroups:
+            - !ImportValue
+              Fn::Sub: 'ibor-${Environment}-ecs-sg'
+      LoadBalancers:
+        - ContainerName: ibor-java
+          ContainerPort: 8080
+          TargetGroupArn: !Ref JavaTargetGroup
+      Tags:
+        - Key: Name
+          Value: !Sub 'ibor-${Environment}-java-service'
+
+  # ─── Application Load Balancer ───
+
+  ApplicationLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub 'ibor-${Environment}-alb'
+      Type: application
+      Scheme: internet-facing
+      IpAddressType: ipv4
+      Subnets:
+        - !ImportValue
+          Fn::Sub: 'ibor-${Environment}-public-subnet-1'
+        - !ImportValue
+          Fn::Sub: 'ibor-${Environment}-public-subnet-2'
+      SecurityGroups:
+        - !ImportValue
+          Fn::Sub: 'ibor-${Environment}-alb-sg'
+      Tags:
+        - Key: Name
+          Value: !Sub 'ibor-${Environment}-alb'
+
+  # Target Groups
+  PythonTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub 'ibor-${Environment}-python-tg'
+      Port: 8000
+      Protocol: HTTP
+      TargetType: ip
+      VpcId: !ImportValue
+        Fn::Sub: 'ibor-${Environment}-vpc-id'
+      HealthCheckPath: /health
+      HealthCheckProtocol: HTTP
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 2
+      Tags:
+        - Key: Name
+          Value: !Sub 'ibor-${Environment}-python-tg'
+
+  JavaTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub 'ibor-${Environment}-java-tg'
+      Port: 8080
+      Protocol: HTTP
+      TargetType: ip
+      VpcId: !ImportValue
+        Fn::Sub: 'ibor-${Environment}-vpc-id'
+      HealthCheckPath: /actuator/health
+      HealthCheckProtocol: HTTP
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 2
+      Tags:
+        - Key: Name
+          Value: !Sub 'ibor-${Environment}-java-tg'
+
+  # Load Balancer Listener
+  AlbListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref PythonTargetGroup
+
+  # Load Balancer Rules
+  PythonLoadBalancerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      ListenerArn: !Ref AlbListener
+      Priority: 1
+      Conditions:
+        - Field: path-pattern
+          Values:
+            - '/analyst/*'
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref PythonTargetGroup
+
+  JavaLoadBalancerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      ListenerArn: !Ref AlbListener
+      Priority: 2
+      Conditions:
+        - Field: path-pattern
+          Values:
+            - '/api/*'
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref JavaTargetGroup
+
+Conditions:
+  IsProduction: !Equals [!Ref Environment, 'production']
+
+Outputs:
+  LoadBalancerDnsName:
+    Description: ALB DNS Name
+    Value: !GetAtt ApplicationLoadBalancer.DNSName
+    Export:
+      Name: !Sub 'ibor-${Environment}-alb-dns'
+
+  ClusterName:
+    Description: ECS Cluster Name
+    Value: !Ref IborCluster
+    Export:
+      Name: !Sub 'ibor-${Environment}-cluster-name'
+
+  PythonServiceName:
+    Description: Python Service Name
+    Value: !GetAtt PythonService.Name
+    Export:
+      Name: !Sub 'ibor-${Environment}-python-service'
+
+  JavaServiceName:
+    Description: Java Service Name
+    Value: !GetAtt JavaService.Name
+    Export:
+      Name: !Sub 'ibor-${Environment}-java-service'
