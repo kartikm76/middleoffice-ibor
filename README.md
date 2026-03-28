@@ -154,23 +154,21 @@ Three schemas in PostgreSQL:
 
 ### `ibor.*` — Curated Facts & Dimensions (Ground Truth)
 
-**STAR Schema ER Diagram:**
+**STAR Schema ER Diagram (Core Tables):**
 
 ```
-dim_portfolio    dim_account    dim_strategy    dim_currency    dim_instrument
-       │              │              │              │              │
-       └──────────────┴──────────────┴──────────────┴──────────────┘
-                            │
-           ┌────────────────┼────────────────┐
-           │                │                │
-    fact_position      fact_price        fact_trade
-           │                │                │
-           └────────────────┼────────────────┘
-                            │
-                     fact_cash_event
+dim_instrument  dim_portfolio  dim_account  dim_account_portfolio  dim_currency  dim_strategy
+        │            │            │                │                 │             │
+        └────────────┴────────────┴────────────────┴─────────────────┴─────────────┘
+                                    │
+                ┌───────────────────┼───────────────────┬────────────────┐
+                │                   │                   │                │
+        fact_position_snapshot  fact_price         fact_fx_rate     fact_trade  fact_cash_event
+                │                   │                   │                │
+                └───────────────────┼───────────────────┴────────────────┘
 ```
 
-**Dimension Tables (SCD2 with history tracking):**
+**Core Dimension Tables (SCD2 with history tracking):**
 - `dim_instrument` — Master instruments (equities, bonds, futures, options, FX, indices)
 - `dim_portfolio` — Portfolio masters and attributes
 - `dim_account` — Trading accounts and characteristics
@@ -178,12 +176,15 @@ dim_portfolio    dim_account    dim_strategy    dim_currency    dim_instrument
 - `dim_currency` — Currency codes and properties
 - `dim_strategy` — Investment strategy definitions
 
-**Fact Tables (immutable, append-only):**
+**Core Fact Tables (immutable, append-only):**
 - `fact_position_snapshot` — Holdings at portfolio level, as-of dates
 - `fact_price` — Historical prices across time
 - `fact_fx_rate` — Foreign exchange rates across time
 - `fact_trade` — Transaction history with full lineage at account level
 - `fact_cash_event` — Dividends, interest, cash transfers
+
+**Additional Schema Tables:**
+The schema also includes specialized sub-tables (`dim_instrument_equity`, `dim_instrument_bond`, `dim_instrument_futures`, `dim_instrument_options`), supplementary dimensions (`dim_exchange`, `dim_price_source`, `dim_portfolio_strategy`), and additional facts (`fact_position_adjustment`, `fact_corporate_action_applied`) for advanced use cases and audit trails.
 
 ### `stg.*` — Staging Tables (ETL Landing Zone)
 
