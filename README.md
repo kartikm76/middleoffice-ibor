@@ -55,6 +55,21 @@ RAG expands to user-uploaded documents (regulatory filings, research, earnings r
 
 ---
 
+## Stack
+
+| Layer | Technology |
+|-------|-----------|
+| **Database** | PostgreSQL 16 + pgvector (embeddings-ready) |
+| **REST API** | Spring Boot 3.5.5, Java 21, jOOQ 3.18.7, Maven |
+| **AI Gateway** | FastAPI 0.119+, Python 3.13, Anthropic SDK, uv (frozen deps) |
+| **LLM** | Claude Sonnet 4.6 (claude-sonnet-4-6) |
+| **Market Data** | yfinance 0.2.50+ (Yahoo Finance) |
+| **Frontend** | React 18, Vite, AG Grid, Ant Design |
+| **Async** | asyncio.gather + asyncio.to_thread |
+| **Deployment** | Docker Compose (local), Railway.app (production) |
+
+---
+
 ## How It Works
 
 ### The Octopus Fan-Out Pattern
@@ -133,22 +148,9 @@ Four async tools fetch live data:
 
 ---
 
-## Stack
-
-| Layer | Technology |
-|-------|-----------|
-| **Database** | PostgreSQL 16 + pgvector (embeddings-ready) |
-| **REST API** | Spring Boot 3.5.5, Java 21, jOOQ 3.18.7, Maven |
-| **AI Gateway** | FastAPI 0.119+, Python 3.13, Anthropic SDK, uv (frozen deps) |
-| **LLM** | Claude Sonnet 4.6 (claude-sonnet-4-6) |
-| **Market Data** | yfinance 0.2.50+ (Yahoo Finance) |
-| **Frontend** | React 18, Vite, AG Grid, Ant Design |
-| **Async** | asyncio.gather + asyncio.to_thread |
-| **Deployment** | Docker Compose (local), Railway.app (production) |
-
----
-
 ## Quick Start
+
+### Running the Application
 
 ```bash
 # 1. Start services (all 4: PostgreSQL, Spring Boot, FastAPI, React)
@@ -157,10 +159,27 @@ Four async tools fetch live data:
 # 2. Open UI
 http://localhost:5173
 
-# 3. Or test API endpoints (see curl commands below)
+# 3. Or test API endpoints
 curl -X POST http://localhost:8000/analyst/chat \
   -H "Content-Type: application/json" \
   -d '{"question":"What are the top positions?"}'
+```
+
+### Testing
+
+```bash
+# Health checks
+curl http://localhost:8000/health
+curl http://localhost:8080/health
+
+# Sample chat query
+curl -X POST http://localhost:8000/analyst/chat \
+  -H "Content-Type: application/json" \
+  -d '{"question":"Analyze the Technology strategy"}'
+
+# Swagger UI
+http://localhost:8080/swagger-ui.html  (Spring Boot)
+http://localhost:8000/docs             (FastAPI)
 ```
 
 ---
@@ -393,25 +412,6 @@ psql -h localhost -U postgres -d ibor -c "SELECT 1"
 ```
 
 </details>
-
----
-
-## Testing
-
-```bash
-# Health checks
-curl http://localhost:8000/health
-curl http://localhost:8080/health
-
-# Sample chat query
-curl -X POST http://localhost:8000/analyst/chat \
-  -H "Content-Type: application/json" \
-  -d '{"question":"Analyze the Technology strategy"}'
-
-# Swagger UI
-http://localhost:8080/swagger-ui.html  (Spring Boot)
-http://localhost:8000/docs             (FastAPI)
-```
 
 ---
 
