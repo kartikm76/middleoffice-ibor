@@ -65,7 +65,7 @@ RAG expands to user-uploaded documents (regulatory filings, research, earnings r
 | **LLM** | Claude Sonnet 4.6 (claude-sonnet-4-6) |
 | **Market Data** | yfinance 0.2.50+ (Yahoo Finance) |
 | **Frontend** | React 18, Vite, AG Grid, Ant Design |
-| **Async** | asyncio.gather + asyncio.to_thread |
+| **Concurrency** | Parallel threads for simultaneous data fetching |
 | **Deployment** | Docker Compose (local), Railway.app (production) |
 
 ---
@@ -80,15 +80,15 @@ When a portfolio manager asks a question, the AI gateway runs a two-stage orches
 
 Claude reads the question and outputs a structured plan: which IBOR tools to call, any tickers explicitly named, and whether macro data is relevant.
 
-**Stage 2a — Explicit tickers: True Octopus blast**
+**Stage 2a — Explicit tickers: Parallel fetch**
 
-If the question names specific tickers (e.g. "compare NVDA and AMD"), all IBOR fetches and all market data fetches fire simultaneously via `asyncio.gather`:
+If the question names specific tickers (e.g. "compare NVDA and AMD"), all data fetches (IBOR and market) run in parallel threads, all at once:
 
 ```
 Question: "Compare NVDA and AMD positions and latest news"
                     │
          ┌──────────▼──────────────────────────────────────────┐
-         │              asyncio.gather (all at once)            │
+         │            Parallel threads (all at once)            │
          │  ┌─────────────┐  ┌──────────┐  ┌───────────────┐  │
          │  │ IBOR:       │  │ Market:  │  │ Market:       │  │
          │  │ positions() │  │ NVDA     │  │ AMD           │  │
@@ -104,20 +104,20 @@ Question: "Compare NVDA and AMD positions and latest news"
          └─────────────────────┘
 ```
 
-**Stage 2b — Implicit tickers: Two-stage fan-out**
+**Stage 2b — Implicit tickers: Two-stage parallel fetch**
 
-If the question is portfolio-level (e.g. "show positions"), IBOR data is fetched first, equity instrument codes (EQ-AAPL, EQ-NVDA...) are extracted and stripped to bare tickers, then market data is fetched in a second parallel blast:
+If the question is portfolio-level (e.g. "show positions"), IBOR data fetches first, extracts equity codes (EQ-AAPL, EQ-NVDA...), then market data fetches in a second wave of parallel threads:
 
 ```
 Question: "What are the top equity positions?"
                     │
          ┌──────────▼──────────┐
-         │  Stage 1: IBOR      │  (asyncio.gather all IBOR calls)
+         │  Stage 1: IBOR      │  (parallel threads)
          │  positions(P-ALPHA) │
          └──────────┬──────────┘
                     │  extract EQ-* codes → [AAPL, NVDA, MSFT, AMD, JPM]
          ┌──────────▼──────────────────────────────────┐
-         │  Stage 2: Market (asyncio.gather, up to 10) │
+         │  Stage 2: Market (parallel threads, up to 10)│
          │  snapshot + news + earnings per ticker       │
          │  + macro (VIX, S&P 500, 10Y yield)          │
          └──────────┬──────────────────────────────────┘
@@ -137,7 +137,7 @@ Claude Sonnet 4.6 combines IBOR facts + market context into analyst-grade prose:
 
 ### External Market Data (Yahoo Finance)
 
-Four async tools fetch live data:
+Four parallel tools fetch live market data:
 
 | Tool | What it returns |
 |------|----------------|
