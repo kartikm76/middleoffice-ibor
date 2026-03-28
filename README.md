@@ -373,43 +373,15 @@ The database contains real historical market data downloaded from Yahoo Finance:
 
 ---
 
-## Security & Deployment
-
-### Local Development
-
-```bash
-# Quick start (all services)
-./start_all.sh
-
-# Or step-by-step
-docker-compose up -d postgres
-mvn -pl ibor-middleware spring-boot:run
-cd ibor-ai-gateway && uv run uvicorn ai_gateway.main:app --reload
-cd ibor-ui && npm run dev
-```
-
-### Production (Railway.app)
-
-See `DEPLOYMENT.md` for step-by-step Railway deployment with 6-layer security:
-1. Rate limiting (30 req/min per IP)
-2. Input validation (XSS/SQL injection prevention)
-3. Authentication (email whitelist → OAuth)
-4. Quotas (100 questions/day, 500k tokens/day)
-5. Cost controls ($50/day spend limit)
-6. Monitoring & logging (complete audit trail)
-
-Configuration in `.env.example` (copy to `.env` and customize).
-
----
-
 ## Documentation
 
-- **`QUICK_START.md`** — Environment setup & service startup
-- **`DEPLOYMENT.md`** — Railway.app production deployment
-- **`SECURITY.md`** — 6-layer security architecture & threat model
-- **`SECURITY_QUICK_START.md`** — 5-min security setup guide
-- **`RELEASE_NOTES.md`** — Version history & migration guide
-- **`ENVIRONMENT.md`** — Detailed environment reference
+For detailed setup, deployment, and security information, see `/internal/docs/`:
+- **`QUICK_START.md`** — How to start and test
+- **`ENVIRONMENT.md`** — Local setup reference
+- **`DEPLOYMENT.md`** — Railway.app deployment
+- **`SECURITY.md`** — Security architecture
+- **`DESIGN_DECISION_LANGCHAIN_RAG.md`** — Architecture details
+- **`RELEASE_NOTES.md`** — Release notes
 
 ---
 
@@ -429,14 +401,6 @@ curl -X POST http://localhost:8000/analyst/chat \
 http://localhost:8080/swagger-ui.html  (Spring Boot)
 http://localhost:8000/docs             (FastAPI)
 ```
-
----
-
-## Support
-
-- Issues? Check `DEPLOYMENT.md` troubleshooting or `SECURITY.md` for guardrails
-- API questions? See curl commands above or Swagger UI at :8000/docs
-- Database questions? See schema section above or `ibor-db/init/` SQL scripts
 
 ---
 
