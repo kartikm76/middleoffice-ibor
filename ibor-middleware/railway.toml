@@ -1,0 +1,13 @@
+# ibor-middleware deployment configuration
+# Java Spring Boot service for structured data APIs
+
+[build]
+builder = "RAILPACK"
+buildCommand = "mvn clean package -DskipTests"
+
+[deploy]
+startCommand = "java -jar target/*.jar"
+healthcheckPath = "/actuator/health"
+healthcheckTimeout = 60
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
