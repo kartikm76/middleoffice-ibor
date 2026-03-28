@@ -2,7 +2,7 @@
 
 An Investment Book of Record (IBOR) is the authoritative, real-time view of a portfolio's holdings — positions, trades, prices, and P&L — used by portfolio managers to make investment decisions.
 
-This platform pairs deterministic financial data (from PostgreSQL) with an AI analyst (Claude Sonnet 4.6) so you can ask questions in plain English and get grounded, data-backed answers enriched with live market context from Yahoo Finance.
+This platform pairs deterministic financial data (from PostgreSQL) with an AI analyst (Claude Sonnet 4.6) so analysts can ask questions in plain English and get grounded, data-backed answers enriched with live market context from Yahoo Finance.
 
 **Core philosophy:** numbers/facts come from SQL, reasoning/narrative come from AI.
 
@@ -17,12 +17,41 @@ IBOR Analyst uses **RAG with pgvector embeddings** to maintain conversational co
 - **Contextual Awareness** — Follow-up questions understand prior context without re-stating it
 - **Storage** — PostgreSQL with pgvector for semantic similarity search
 
-This enables coherent, context-aware multi-turn conversations where the AI analyst remembers what you've discussed.
+This enables coherent, context-aware multi-turn conversations where the AI analyst maintains discussion history.
 
 ### Phase 2 (Coming): Document-Augmented Analysis
 RAG expands to user-uploaded documents (regulatory filings, research, earnings reports) blended with IBOR data and market context.
 
-**The Vision:** Start with conversation memory (Phase 1), evolve to document-rich analysis (Phase 2), create a unified intelligence layer over your portfolio data.
+**The Vision:** Start with conversation memory (Phase 1), evolve to document-rich analysis (Phase 2), create a unified intelligence layer over portfolio data.
+
+---
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          IBOR AI Platform                                    │
+│                                                                               │
+│  ┌──────────────┐    ┌──────────────────────┐    ┌────────────────────────┐ │
+│  │  PostgreSQL  │    │   Spring Boot :8080   │    │  FastAPI AI Gateway   │ │
+│  │  16+pgvector │◄───│  Deterministic REST   │◄───│       :8000           │ │
+│  │              │    │  positions / prices   │    │  Octopus Orchestrator │ │
+│  │  ibor.*      │    │  trades / analytics   │    │                        │ │
+│  │  stg.*       │    └──────────────────────┘    └──────────┬─────────────┘ │
+│  │  rag_*       │                                            │               │
+│  └──────────────┘                                            │               │
+│                                                    ┌─────────▼─────────────┐ │
+│  ┌──────────────┐                                  │   Two-Stage Fan-Out   │ │
+│  │  yfinance    │◄─────────────────────────────────│   (Octopus Pattern)   │ │
+│  │  (Yahoo Fin) │    live market data              │                        │ │
+│  └──────────────┘                                  │  LLM #1: Intent Parse │ │
+│                                                    │  Stage 1: IBOR fetch  │ │
+│  ┌──────────────┐                                  │  Stage 2: Market fetch│ │
+│  │  Claude      │◄─────────────────────────────────│  LLM #2: Synthesis    │ │
+│  │  Sonnet 4.6  │    narration / synthesis         └───────────────────────┘ │
+│  └──────────────┘                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -62,10 +91,10 @@ Question: "Compare NVDA and AMD positions and latest news"
 
 **Stage 2b — Implicit tickers: Two-stage fan-out**
 
-If the question is portfolio-level (e.g. "show me my positions"), IBOR data is fetched first, equity instrument codes (EQ-AAPL, EQ-NVDA...) are extracted and stripped to bare tickers, then market data is fetched in a second parallel blast:
+If the question is portfolio-level (e.g. "show positions"), IBOR data is fetched first, equity instrument codes (EQ-AAPL, EQ-NVDA...) are extracted and stripped to bare tickers, then market data is fetched in a second parallel blast:
 
 ```
-Question: "What are my top equity positions?"
+Question: "What are the top equity positions?"
                     │
          ┌──────────▼──────────┐
          │  Stage 1: IBOR      │  (asyncio.gather all IBOR calls)
@@ -131,115 +160,7 @@ http://localhost:5173
 # 3. Or test API endpoints (see curl commands below)
 curl -X POST http://localhost:8000/analyst/chat \
   -H "Content-Type: application/json" \
-  -d '{"question":"What are my top positions?"}'
-```
-
----
-
-## API Curl Commands
-
-### Chat Endpoint (AI Analyst)
-
-```bash
-# Simple question
-curl -X POST http://localhost:8000/analyst/chat \
-  -H "Content-Type: application/json" \
-  -d '{
-    "question": "What are my top 3 positions in P-ALPHA?",
-    "portfolio_code": "P-ALPHA",
-    "market_contents": true
-  }'
-
-# With specific tickers (triggers Octopus blast)
-curl -X POST http://localhost:8000/analyst/chat \
-  -H "Content-Type: application/json" \
-  -d '{
-    "question": "How are NVDA and AMD performing? Any news?",
-    "portfolio_code": "P-ALPHA",
-    "market_contents": true
-  }'
-
-# IBOR-only (no market data)
-curl -X POST http://localhost:8000/analyst/chat \
-  -H "Content-Type: application/json" \
-  -d '{
-    "question": "Tell me about my portfolio composition",
-    "portfolio_code": "P-ALPHA",
-    "market_contents": false
-  }'
-```
-
-### Positions Endpoint
-
-```bash
-# Get all positions as-of a date
-curl -X POST http://localhost:8000/analyst/positions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "portfolio_code": "P-ALPHA",
-    "as_of": "2026-03-19"
-  }'
-
-# Get positions in a specific account
-curl -X POST http://localhost:8000/analyst/positions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "portfolio_code": "P-ALPHA",
-    "as_of": "2026-03-19",
-    "account_code": "ACCT-PRIME"
-  }'
-```
-
-### Trades Endpoint
-
-```bash
-# Get transaction history for a specific instrument
-curl -X POST http://localhost:8000/analyst/trades \
-  -H "Content-Type: application/json" \
-  -d '{
-    "portfolio_code": "P-ALPHA",
-    "instrument_code": "EQ-AAPL",
-    "as_of": "2026-03-19"
-  }'
-```
-
-### Prices Endpoint
-
-```bash
-# Get price history time series
-curl -X POST http://localhost:8000/analyst/prices \
-  -H "Content-Type: application/json" \
-  -d '{
-    "instrument_code": "EQ-AAPL",
-    "from_date": "2026-01-01",
-    "to_date": "2026-03-19"
-  }'
-```
-
-### P&L Endpoint
-
-```bash
-# Calculate P&L delta between two dates
-curl -X POST http://localhost:8000/analyst/pnl \
-  -H "Content-Type: application/json" \
-  -d '{
-    "portfolio_code": "P-ALPHA",
-    "as_of": "2026-03-19",
-    "prior": "2026-03-18"
-  }'
-```
-
-### Health Checks
-
-```bash
-# FastAPI health
-curl http://localhost:8000/health
-
-# Spring Boot health
-curl http://localhost:8080/health
-
-# PostgreSQL (if exposed)
-psql -h localhost -U postgres -d ibor -c "SELECT 1"
+  -d '{"question":"What are the top positions?"}'
 ```
 
 ---
@@ -362,32 +283,116 @@ The database contains real historical market data downloaded from Yahoo Finance:
 
 ---
 
-## Architecture
+## API Curl Commands
 
+<details>
+<summary><strong>Click to expand API examples</strong></summary>
+
+### Chat Endpoint (AI Analyst)
+
+```bash
+# Simple question
+curl -X POST http://localhost:8000/analyst/chat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "question": "What are the top 3 positions in P-ALPHA?",
+    "portfolio_code": "P-ALPHA",
+    "market_contents": true
+  }'
+
+# With specific tickers (triggers Octopus blast)
+curl -X POST http://localhost:8000/analyst/chat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "question": "How are NVDA and AMD performing? Any news?",
+    "portfolio_code": "P-ALPHA",
+    "market_contents": true
+  }'
+
+# IBOR-only (no market data)
+curl -X POST http://localhost:8000/analyst/chat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "question": "Tell me about portfolio composition",
+    "portfolio_code": "P-ALPHA",
+    "market_contents": false
+  }'
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                          IBOR AI Platform                                    │
-│                                                                               │
-│  ┌──────────────┐    ┌──────────────────────┐    ┌────────────────────────┐ │
-│  │  PostgreSQL  │    │   Spring Boot :8080   │    │  FastAPI AI Gateway   │ │
-│  │  16+pgvector │◄───│  Deterministic REST   │◄───│       :8000           │ │
-│  │              │    │  positions / prices   │    │  Octopus Orchestrator │ │
-│  │  ibor.*      │    │  trades / analytics   │    │                        │ │
-│  │  stg.*       │    └──────────────────────┘    └──────────┬─────────────┘ │
-│  │  rag_*       │                                            │               │
-│  └──────────────┘                                            │               │
-│                                                    ┌─────────▼─────────────┐ │
-│  ┌──────────────┐                                  │   Two-Stage Fan-Out   │ │
-│  │  yfinance    │◄─────────────────────────────────│   (Octopus Pattern)   │ │
-│  │  (Yahoo Fin) │    live market data              │                        │ │
-│  └──────────────┘                                  │  LLM #1: Intent Parse │ │
-│                                                    │  Stage 1: IBOR fetch  │ │
-│  ┌──────────────┐                                  │  Stage 2: Market fetch│ │
-│  │  Claude      │◄─────────────────────────────────│  LLM #2: Synthesis    │ │
-│  │  Sonnet 4.6  │    narration / synthesis         └───────────────────────┘ │
-│  └──────────────┘                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
+
+### Positions Endpoint
+
+```bash
+# Get all positions as-of a date
+curl -X POST http://localhost:8000/analyst/positions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "portfolio_code": "P-ALPHA",
+    "as_of": "2026-03-19"
+  }'
+
+# Get positions in a specific account
+curl -X POST http://localhost:8000/analyst/positions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "portfolio_code": "P-ALPHA",
+    "as_of": "2026-03-19",
+    "account_code": "ACCT-PRIME"
+  }'
 ```
+
+### Trades Endpoint
+
+```bash
+# Get transaction history for a specific instrument
+curl -X POST http://localhost:8000/analyst/trades \
+  -H "Content-Type: application/json" \
+  -d '{
+    "portfolio_code": "P-ALPHA",
+    "instrument_code": "EQ-AAPL",
+    "as_of": "2026-03-19"
+  }'
+```
+
+### Prices Endpoint
+
+```bash
+# Get price history time series
+curl -X POST http://localhost:8000/analyst/prices \
+  -H "Content-Type: application/json" \
+  -d '{
+    "instrument_code": "EQ-AAPL",
+    "from_date": "2026-01-01",
+    "to_date": "2026-03-19"
+  }'
+```
+
+### P&L Endpoint
+
+```bash
+# Calculate P&L delta between two dates
+curl -X POST http://localhost:8000/analyst/pnl \
+  -H "Content-Type: application/json" \
+  -d '{
+    "portfolio_code": "P-ALPHA",
+    "as_of": "2026-03-19",
+    "prior": "2026-03-18"
+  }'
+```
+
+### Health Checks
+
+```bash
+# FastAPI health
+curl http://localhost:8000/health
+
+# Spring Boot health
+curl http://localhost:8080/health
+
+# PostgreSQL (if exposed)
+psql -h localhost -U postgres -d ibor -c "SELECT 1"
+```
+
+</details>
 
 ---
 
@@ -416,11 +421,9 @@ http://localhost:8000/docs             (FastAPI)
 
 IBOR Analyst launched with **RAG-powered conversation memory**:
 - ✅ Multi-turn conversations with semantic understanding (pgvector embeddings)
-- ✅ Context-aware responses that remember what you've discussed
+- ✅ Context-aware responses that maintain analyst discussion history
 - ✅ Octopus fan-out pattern for parallel IBOR + market data fetching
 - ✅ Claude Sonnet 4.6 synthesis of data + market context into analyst prose
-- ✅ 6-layer security guardrails (rate limiting, quotas, cost controls, input validation)
-- ✅ Production-ready on Railway.app
 
 ### What's Coming in Phase 2
 
@@ -435,7 +438,7 @@ Phase 2 extends the RAG layer to **user-uploaded documents**:
 By Phase 2 completion, IBOR Analyst will synthesize:
 - **Deterministic data** (IBOR from PostgreSQL) — ground truth
 - **Market intelligence** (Yahoo Finance, real-time) — current context
-- **Conversational memory** (pgvector, Phase 1) — what you've discussed
-- **Document knowledge** (user uploads, pgvector, Phase 2) — your research
+- **Conversational memory** (pgvector, Phase 1) -> analyst discussion
+- **Document knowledge** (user uploads, pgvector, Phase 2) - analyst research
 
-All blended by Claude into analyst-grade prose that sounds human, stays grounded in facts, and adapts to your evolving needs.
+All blended by Claude into analyst-grade prose that sounds human, stays grounded in facts, and adapts to evolving analytical needs.
