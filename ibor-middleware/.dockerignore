@@ -1,0 +1,16 @@
+*.md
+.git
+.gitignore
+.env
+.env.*
+target/
+.vscode
+.idea
+*.iml
+.DS_Store
+node_modules/
+.pytest_cache/
+__pycache__/
+*.pyc
+.venv
+venv/

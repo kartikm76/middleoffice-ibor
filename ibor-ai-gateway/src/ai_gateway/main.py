@@ -20,6 +20,7 @@ from ai_gateway.controller.health import router as health_router
 from ai_gateway.controller.analyst import make_analyst_router
 from ai_gateway.controller import conversation_test
 from ai_gateway.controller import scheduler_test
+from ai_gateway.infra.security_middleware import SecurityMiddleware, InputValidationMiddleware, QuotaCheckMiddleware
 
 
 def create_app() -> FastAPI:
@@ -60,9 +61,13 @@ def create_app() -> FastAPI:
 
     app = FastAPI(title="IBOR AI Gateway", version="0.2.0", lifespan=lifespan)
 
+    # Security middlewares (added in reverse order — they execute top-to-bottom)
+    app.add_middleware(QuotaCheckMiddleware)
+    app.add_middleware(InputValidationMiddleware)
+    app.add_middleware(SecurityMiddleware)
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["http://localhost:4200", "http://localhost:5173"],
+        allow_origins=["http://localhost:4200", "http://localhost:5173", "localhost", "127.0.0.1"],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

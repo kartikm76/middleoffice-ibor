@@ -1,0 +1,17 @@
+*.md
+.git
+.gitignore
+.env
+.env.*
+node_modules/
+dist/
+.vscode
+.idea
+.DS_Store
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.coverage
+build/
+*.tar.gz
