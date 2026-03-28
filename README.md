@@ -373,18 +373,6 @@ The database contains real historical market data downloaded from Yahoo Finance:
 
 ---
 
-## Documentation
-
-For detailed setup, deployment, and security information, see `/internal/docs/`:
-- **`QUICK_START.md`** — How to start and test
-- **`ENVIRONMENT.md`** — Local setup reference
-- **`DEPLOYMENT.md`** — Railway.app deployment
-- **`SECURITY.md`** — Security architecture
-- **`DESIGN_DECISION_LANGCHAIN_RAG.md`** — Architecture details
-- **`RELEASE_NOTES.md`** — Release notes
-
----
-
 ## Testing
 
 ```bash
@@ -404,6 +392,33 @@ http://localhost:8000/docs             (FastAPI)
 
 ---
 
-**Version:** 0.2.0
-**Status:** Production Ready (with security guardrails)
-**Last Updated:** 2026-03-28
+## Next Steps
+
+### Phase 2: Document-Augmented Answers
+
+The next phase will introduce **document upload and RAG (Retrieval-Augmented Generation)** capabilities to deliver more focused, contextually-rich answers:
+
+**What You'll Be Able to Upload:**
+- **Regulatory Documents** — SEC filings, prospectuses, compliance memos
+- **Earnings Reports & Guidance** — Company earnings releases and forward guidance
+- **Research Notes** — Internal analyst notes, investment theses, position research
+- **Market Commentary** — Industry reports, macro analysis, broker research
+
+**How It Works:**
+1. Upload documents directly to the platform
+2. Documents are embedded and stored in pgvector (semantic search)
+3. When you ask a question, IBOR Analyst searches your uploaded docs
+4. Answers blend:
+   - **Numbers** from IBOR (ground truth positions, trades, P&L)
+   - **Market Commentary** from Yahoo Finance (prices, news, earnings)
+   - **Your Documents** (regulatory insights, research, proprietary analysis)
+
+**Result:**
+Analyst-grade responses that combine your portfolio data, live market context, AND your internal research — all in one coherent narrative.
+
+Example: *"What's the risk profile of my XYZ position?"*
+- Returns position details from IBOR
+- Includes current price action and analyst sentiment from markets
+- Layers in regulatory concerns from SEC filings you uploaded
+- References your internal research notes on the position
+- Surfaces earnings date and guidance from documents
