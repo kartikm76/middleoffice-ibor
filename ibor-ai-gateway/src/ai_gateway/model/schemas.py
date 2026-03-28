@@ -1,9 +1,18 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
+
+
+class QuotaStatus(BaseModel):
+    """Quota status for user (IP-based)."""
+    questions_today: int
+    questions_limit: int
+    questions_remaining: int
+    quota_exceeded: bool
+    reset_time: Optional[datetime] = None
 
 
 class IborAnswer(BaseModel):
@@ -14,6 +23,7 @@ class IborAnswer(BaseModel):
     data: Dict[str, Any] = Field(default_factory=dict)
     source: Optional[str] = None
     gaps: List[str] = Field(default_factory=list)
+    quota_status: Optional[QuotaStatus] = None
 
 
 # --- Request models ---
@@ -55,4 +65,5 @@ class PnLRequest(BaseModel):
 class ChatRequest(BaseModel):
     question: str
     portfolio_code: Optional[str] = None
+    as_of: Optional[date] = None  # Optional as_of date (defaults to today)
     market_contents: Optional[bool] = True  # whether to fetch yfinance + market data

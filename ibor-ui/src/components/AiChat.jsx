@@ -80,6 +80,7 @@ export default function AiChat({ onAnswer, useContext, onContextChange, position
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
   const [marketContents, setMarketContents] = useState(true)  // Toggle for market data
+  const [quotaStatus, setQuotaStatus] = useState(null)
   const bottomRef = useRef(null)
   const textareaRef = useRef(null)
   const nextId = useRef(2)
@@ -131,6 +132,11 @@ export default function AiChat({ onAnswer, useContext, onContextChange, position
         { headers: { 'Content-Type': 'application/json' } }
       )
 
+      // Capture quota status from response
+      if (data.quota_status) {
+        setQuotaStatus(data.quota_status)
+      }
+
       let summary = data.summary || '(No response)'
 
       // Format: concise data-driven answer, with AI narrative trimmed
@@ -151,10 +157,16 @@ export default function AiChat({ onAnswer, useContext, onContextChange, position
       if (onAnswer) onAnswer(data)
     } catch (err) {
       const errMsg = err?.response?.data?.detail || err.message || 'An error occurred.'
+
+      // Capture quota status from error response too
+      if (err?.response?.data?.quota_status) {
+        setQuotaStatus(err.response.data.quota_status)
+      }
+
       setMessages(prev =>
         prev.map(m =>
           m.id === thinkingMsgId
-            ? { ...m, content: `Error: ${errMsg}`, thinking: false }
+            ? { ...m, content: `${errMsg}`, thinking: false }
             : m
         )
       )
@@ -196,6 +208,16 @@ export default function AiChat({ onAnswer, useContext, onContextChange, position
       </div>
 
       <div className="chat-input-area">
+        {quotaStatus?.quota_exceeded && (
+          <div className="quota-banner">
+            ❌ Daily question limit reached. Come back tomorrow at {new Date(quotaStatus.reset_time).toLocaleString()}
+          </div>
+        )}
+        {quotaStatus && !quotaStatus.quota_exceeded && (
+          <div className="quota-info">
+            {quotaStatus.questions_remaining} of {quotaStatus.questions_limit} questions remaining
+          </div>
+        )}
         <div className="chat-input-row">
           <textarea
             ref={textareaRef}
@@ -203,14 +225,14 @@ export default function AiChat({ onAnswer, useContext, onContextChange, position
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="What do you want to know?"
+            placeholder={quotaStatus?.quota_exceeded ? "Daily limit reached" : "What do you want to know?"}
             rows={2}
-            disabled={sending}
+            disabled={sending || quotaStatus?.quota_exceeded}
           />
           <button
             className="chat-send-btn"
             onClick={handleSend}
-            disabled={sending || !input.trim()}
+            disabled={sending || !input.trim() || quotaStatus?.quota_exceeded}
           >
             {sending ? '…' : 'Send'}
           </button>

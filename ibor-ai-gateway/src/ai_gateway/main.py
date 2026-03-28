@@ -15,7 +15,9 @@ from ai_gateway.service.ibor_service import IborService
 from ai_gateway.service.llm_service import LlmService
 from ai_gateway.service.market_tools import MarketTools
 from ai_gateway.service.conversation_service import ConversationService
+from ai_gateway.service.quota_service import QuotaService
 from ai_gateway.service.embedding_scheduler import EmbeddingScheduler
+from ai_gateway.service.quota_service import QuotaService
 from ai_gateway.controller.health import router as health_router
 from ai_gateway.controller.analyst import make_analyst_router
 from ai_gateway.controller import conversation_test
@@ -45,6 +47,9 @@ def create_app() -> FastAPI:
         market_tools=market_tools,
         model=settings.anthropic_model,
     )
+
+    # Initialize quota service
+    quota_service = QuotaService(pg_pool, max_questions_per_day=20)
 
     # Initialize embedding scheduler
     embedding_scheduler = EmbeddingScheduler(conversation_service, pg_pool)
@@ -78,7 +83,7 @@ def create_app() -> FastAPI:
     scheduler_test.scheduler = embedding_scheduler
 
     app.include_router(health_router, tags=["health"])
-    app.include_router(make_analyst_router(service, llm_service, conversation_service))
+    app.include_router(make_analyst_router(service, llm_service, conversation_service, quota_service))
     app.include_router(conversation_test.router)
     app.include_router(scheduler_test.router)
 
