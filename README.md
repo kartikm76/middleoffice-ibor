@@ -148,42 +148,6 @@ Four async tools fetch live data:
 
 ---
 
-## Quick Start
-
-### Running the Application
-
-```bash
-# 1. Start services (all 4: PostgreSQL, Spring Boot, FastAPI, React)
-./start_all.sh
-
-# 2. Open UI
-http://localhost:5173
-
-# 3. Or test API endpoints
-curl -X POST http://localhost:8000/analyst/chat \
-  -H "Content-Type: application/json" \
-  -d '{"question":"What are the top positions?"}'
-```
-
-### Testing
-
-```bash
-# Health checks
-curl http://localhost:8000/health
-curl http://localhost:8080/health
-
-# Sample chat query
-curl -X POST http://localhost:8000/analyst/chat \
-  -H "Content-Type: application/json" \
-  -d '{"question":"Analyze the Technology strategy"}'
-
-# Swagger UI
-http://localhost:8080/swagger-ui.html  (Spring Boot)
-http://localhost:8000/docs             (FastAPI)
-```
-
----
-
 ## Database Schema
 
 Three schemas in PostgreSQL:
@@ -193,21 +157,17 @@ Three schemas in PostgreSQL:
 **STAR Schema ER Diagram:**
 
 ```
-                              dim_portfolio
-                                    │
-                     ┌──────────────┼──────────────┐
-                     │              │              │
-               dim_account    dim_strategy    dim_currency
-                     │              │              │
-                     └──────────────┼──────────────┘
-                                    │
-           ┌────────────────────────┼────────────────────────┐
-           │                        │                        │
-    fact_position_snapshot   fact_price_fxrate       fact_trade
-           │                        │                        │
-           └────────────────────────┼────────────────────────┘
-                                    │
-                              dim_instrument
+dim_portfolio    dim_account    dim_strategy    dim_currency    dim_instrument
+       │              │              │              │              │
+       └──────────────┴──────────────┴──────────────┴──────────────┘
+                            │
+           ┌────────────────┼────────────────┐
+           │                │                │
+    fact_position      fact_price        fact_trade
+           │                │                │
+           └────────────────┼────────────────┘
+                            │
+                     fact_cash_event
 ```
 
 **Dimension Tables (SCD2 with history tracking):**
@@ -303,12 +263,29 @@ The database contains real historical market data downloaded from Yahoo Finance:
 
 ---
 
-## API Curl Commands
+## Quick Start
+
+### Running the Application
+
+```bash
+# 1. Start services (all 4: PostgreSQL, Spring Boot, FastAPI, React)
+./start_all.sh
+
+# 2. Open UI
+http://localhost:5173
+
+# 3. Or test API endpoints
+curl -X POST http://localhost:8000/analyst/chat \
+  -H "Content-Type: application/json" \
+  -d '{"question":"What are the top positions?"}'
+```
+
+### API Curl Commands
 
 <details>
 <summary><strong>Click to expand API examples</strong></summary>
 
-### Chat Endpoint (AI Analyst)
+#### Chat Endpoint (AI Analyst)
 
 ```bash
 # Simple question
@@ -339,7 +316,7 @@ curl -X POST http://localhost:8000/analyst/chat \
   }'
 ```
 
-### Positions Endpoint
+#### Positions Endpoint
 
 ```bash
 # Get all positions as-of a date
@@ -360,7 +337,7 @@ curl -X POST http://localhost:8000/analyst/positions \
   }'
 ```
 
-### Trades Endpoint
+#### Trades Endpoint
 
 ```bash
 # Get transaction history for a specific instrument
@@ -373,7 +350,7 @@ curl -X POST http://localhost:8000/analyst/trades \
   }'
 ```
 
-### Prices Endpoint
+#### Prices Endpoint
 
 ```bash
 # Get price history time series
@@ -386,7 +363,7 @@ curl -X POST http://localhost:8000/analyst/prices \
   }'
 ```
 
-### P&L Endpoint
+#### P&L Endpoint
 
 ```bash
 # Calculate P&L delta between two dates
@@ -399,7 +376,7 @@ curl -X POST http://localhost:8000/analyst/pnl \
   }'
 ```
 
-### Health Checks
+#### Health Checks
 
 ```bash
 # FastAPI health
@@ -413,6 +390,23 @@ psql -h localhost -U postgres -d ibor -c "SELECT 1"
 ```
 
 </details>
+
+### Testing
+
+```bash
+# Health checks
+curl http://localhost:8000/health
+curl http://localhost:8080/health
+
+# Sample chat query
+curl -X POST http://localhost:8000/analyst/chat \
+  -H "Content-Type: application/json" \
+  -d '{"question":"Analyze the Technology strategy"}'
+
+# Swagger UI
+http://localhost:8080/swagger-ui.html  (Spring Boot)
+http://localhost:8000/docs             (FastAPI)
+```
 
 ---
 
