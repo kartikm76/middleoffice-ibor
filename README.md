@@ -154,7 +154,7 @@ Three schemas in PostgreSQL:
 
 ### `ibor.*` — Curated Facts & Dimensions (Ground Truth)
 
-**STAR Schema ER Diagram (Core Tables):**
+**STAR Schema ER Diagram (ibor.* — Curated Core Tables):**
 
 ```
 dim_instrument  dim_portfolio  dim_account  dim_account_portfolio  dim_currency  dim_strategy
@@ -166,6 +166,15 @@ dim_instrument  dim_portfolio  dim_account  dim_account_portfolio  dim_currency 
         fact_position_snapshot  fact_price         fact_fx_rate     fact_trade  fact_cash_event
                 │                   │                   │                │
                 └───────────────────┼───────────────────┴────────────────┘
+```
+
+**RAG Schema (rag_* — Semantic Search & Conversation Memory):**
+
+```
+rag_document  rag_position_notes  rag_conversation  rag_index
+      │              │                  │              │
+      └──────────────┴──────────────────┴──────────────┘
+              (pgvector embeddings)
 ```
 
 **Core Dimension Tables (SCD2 with history tracking):**
@@ -190,12 +199,13 @@ The schema also includes specialized sub-tables (`dim_instrument_equity`, `dim_i
 
 Temporary landing zone for CSV data before validation and promotion to ibor.*. Cleared after each ETL run. See `ibor-db/init/03-staging.sql` for field mappings.
 
-### `rag_*` — pgvector Embeddings (Phase 2)
+### `rag_*` — Semantic Search & Conversation Memory (Phase 1+2)
 
-Reserved for semantic search and document RAG:
-- `rag_document` — Embedded research documents
-- `rag_position_notes` — Embedded analyst notes
-- `rag_index` — Embedding vectors (stored in pgvector)
+pgvector embeddings for RAG and conversation context:
+- `rag_conversation` — Multi-turn conversation history with embeddings (Phase 1 - Active)
+- `rag_document` — User-uploaded documents with embeddings (Phase 2 - Coming)
+- `rag_position_notes` — Analyst notes and annotations with embeddings (Phase 2 - Coming)
+- `rag_index` — Embedding vectors and metadata for similarity search
 
 ---
 
@@ -239,28 +249,28 @@ CSV files → stg.* (staging) → ibor.* (curated) → fact_* & dim_* tables
 
 **Details:** See `ibor-db/init/` for SQL scripts and `ibor-starter/README.md` for CSV field mappings.
 
-### Data Quality
+### Data Coverage & Market Data
 
-- **Comprehensive instruments** across 8 asset classes
-- **Price history** with real Yahoo Finance historical data
-- **FX rates** for major currency pairs
-- **Bond prices** computed from real treasury yields using standard bond pricing
-- **Trades** with full account-level lineage and cash event tracking
+**Instruments (201 total, 8 asset classes):**
+- **121 Equities** — US (AAPL, MSFT, NVDA, GOOGL, META, AMZN, TSLA, JPM, BAC, GS, JNJ, UNH, XOM, CVX, BA, etc.), European (SAP, ASML, LVMH, Shell, AstraZeneca, etc.), indices (SPY, QQQ, GLD, TLT, etc.)
+- **25 Bonds** — 10 US Treasury (3M, 6M, 1Y, 2Y, 3Y, 5Y, 7Y, 10Y, 20Y, 30Y), 15 Corporate (issued by AAPL, MSFT, JPM, Goldman Sachs, Apple, Bank of America, Coca-Cola, Exxon, J&J, Pfizer, P&G, UnitedHealth, Walmart, Eli Lilly, IBM)
+- **25 Futures** — Interest rate futures, equity index futures, commodity futures
+- **10 Options** — Equity options on major US stocks
+- **10 Indices** — S&P 500, Nasdaq-100, Russell 2000, FTSE 100, DAX, Euro Stoxx 50, etc.
+- **10 FX Pairs** — Direct (EUR/USD, GBP/USD, JPY/USD, etc.), inverse, and cross rates (CHF/EUR, GBP/JPY, etc.)
 
----
+**Price Data (1,604 snapshots):**
+- **Time period:** 2025-01-02 to 2026-03-20 (78 trading days captured)
+- **Source:** Real Yahoo Finance historical data
+- **Includes:** Open, high, low, close, volume, bid-ask spreads
 
-## Market Data in the Database
+**FX Rates (216 snapshots):**
+- **Currency pairs (10 direct + 10 cross):** AUD/USD, CAD/USD, CHF/USD, EUR/USD, GBP/USD, HKD/USD, JPY/USD, SGD/USD, CNH/USD, plus EUR/GBP, EUR/CHF, EUR/JPY, GBP/JPY, etc.
+- **Historical rates:** Same 78 trading days
 
-The database contains real historical market data downloaded from Yahoo Finance:
-
-- **US Equities:** AAPL, MSFT, NVDA, GOOGL, META, AMZN, TSLA, JPM, BAC, GS, JNJ, UNH, XOM, CVX, BA, SPY, QQQ, GLD, TLT, and 80+ more
-- **European Equities:** SAP, ASML, LVMH, Nestlé, Shell, AstraZeneca, and more (GBP/CHF where applicable)
-- **Bonds:** US Treasury notes + corporate bonds with computed pricing
-- **Futures & Options:** Rates, indices, equity derivatives
-- **FX Pairs:** 7 direct + 3 inverse (EUR/USD, GBP/USD, JPY/USD, etc.)
-- **Indices:** S&P 500, Nasdaq-100, European indices
-
-**Date Range:** 2025-01-02 to 2026-03-20 (8 snapshots)
+**Trades (61 executed trades):**
+- **Account-level lineage:** Execution ID, trade date, settlement date, quantity, price, gross/net amounts
+- **Full event tracking:** Cash settlements, dividends, interest accruals via fact_cash_event
 
 ---
 
