@@ -1,39 +1,27 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # IBOR AI Gateway (FastAPI) Dockerfile
-# Uses frozen uv.lock for reproducible Python environment
+# Simple pip-based install (Docker is already isolated)
 # ─────────────────────────────────────────────────────────────────────────────
 
 FROM python:3.13-slim-bookworm
 
 WORKDIR /app
 
-# Install system dependencies (curl for health checks, build tools for compiled packages)
+# Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Install uv via pip (simpler than cargo installer)
-RUN pip install --no-cache-dir uv
-
-# Copy uv.lock (frozen dependencies)
-COPY uv.lock pyproject.toml ./
-
-# Create virtual environment and sync dependencies from frozen uv.lock
-RUN uv venv /app/.venv && \
-    /app/.venv/bin/pip install --upgrade pip && \
-    /app/.venv/bin/uv sync --frozen
-
-# Copy source code
+# Copy source code first
 COPY . .
+
+# Install dependencies using pip directly from pyproject.toml
+RUN pip install --no-cache-dir -e .
 
 # Create non-root user for security
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
 USER appuser
-
-# Set PATH to use venv
-ENV VIRTUAL_ENV=/app/.venv
-ENV PATH="/app/.venv/bin:$PATH"
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
@@ -42,5 +30,5 @@ HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
 # Expose port
 EXPOSE 8000
 
-# Run FastAPI application using venv python
-CMD ["/app/.venv/bin/uvicorn", "ai_gateway.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run FastAPI application
+CMD ["uvicorn", "ai_gateway.main:app", "--host", "0.0.0.0", "--port", "8000"]
