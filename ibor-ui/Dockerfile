@@ -75,8 +75,8 @@ server {
 }
 EOF
 
-# Create non-root user
-RUN addgroup -g 1000 appuser && adduser -u 1000 -G appuser appuser && \
+# Create non-root user (Alpine style)
+RUN addgroup -g 1000 appuser && adduser -D -u 1000 -G appuser appuser && \
     chown -R appuser:appuser /usr/share/nginx/html /var/cache/nginx /var/log/nginx
 
 USER appuser
