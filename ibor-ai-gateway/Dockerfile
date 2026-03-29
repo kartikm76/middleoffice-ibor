@@ -13,17 +13,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Install uv (fast Python package manager)
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
-    ln -s /root/.cargo/bin/uv /usr/local/bin/uv
+# Install uv via pip (simpler than cargo installer)
+RUN pip install --no-cache-dir uv
 
 # Copy uv.lock (frozen dependencies)
 COPY uv.lock pyproject.toml ./
 
 # Create virtual environment and sync dependencies from frozen uv.lock
 RUN uv venv /app/.venv && \
-    . /app/.venv/bin/activate && \
-    uv sync --frozen
+    /app/.venv/bin/pip install --upgrade pip && \
+    /app/.venv/bin/uv sync --frozen
 
 # Copy source code
 COPY . .
@@ -43,5 +42,5 @@ HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
 # Expose port
 EXPOSE 8000
 
-# Run FastAPI application
-CMD ["uvicorn", "ai_gateway.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run FastAPI application using venv python
+CMD ["/app/.venv/bin/uvicorn", "ai_gateway.main:app", "--host", "0.0.0.0", "--port", "8000"]
