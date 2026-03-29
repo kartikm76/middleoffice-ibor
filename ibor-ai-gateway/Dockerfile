@@ -14,17 +14,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install uv (fast Python package manager)
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-ENV PATH="/root/.cargo/bin:$PATH"
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
+    ln -s /root/.cargo/bin/uv /usr/local/bin/uv
 
 # Copy uv.lock (frozen dependencies)
 COPY uv.lock pyproject.toml ./
 
 # Create virtual environment and sync dependencies from frozen uv.lock
-RUN uv venv /app/.venv
-ENV VIRTUAL_ENV=/app/.venv
-ENV PATH="/app/.venv/bin:$PATH"
-RUN uv sync --frozen
+RUN uv venv /app/.venv && \
+    . /app/.venv/bin/activate && \
+    uv sync --frozen
 
 # Copy source code
 COPY . .
@@ -32,6 +31,10 @@ COPY . .
 # Create non-root user for security
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
 USER appuser
+
+# Set PATH to use venv
+ENV VIRTUAL_ENV=/app/.venv
+ENV PATH="/app/.venv/bin:$PATH"
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
