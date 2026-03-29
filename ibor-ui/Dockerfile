@@ -78,9 +78,12 @@ server {
 }
 EOF
 
-# Create non-root user (Alpine style)
-RUN addgroup -g 1000 appuser && adduser -D -u 1000 -G appuser appuser && \
-    chown -R appuser:appuser /usr/share/nginx/html /var/cache/nginx /var/log/nginx
+# Create non-root user (Alpine style) and fix Nginx for non-root
+RUN addgroup -g 1000 appuser && \
+    adduser -D -u 1000 -G appuser appuser && \
+    chown -R appuser:appuser /usr/share/nginx/html /var/cache/nginx /var/log/nginx && \
+    sed -i '/^user /d' /etc/nginx/nginx.conf && \
+    sed -i 's|pid /var/run/nginx.pid;|pid /tmp/nginx.pid;|' /etc/nginx/nginx.conf
 
 USER appuser
 
