@@ -1,8 +1,7 @@
 [project]
 name = "ai-gateway"
 version = "0.1.0"
-description = "Add your description here"
-readme = "README.md"
+description = "IBOR AI Gateway - FastAPI service for portfolio analysis"
 authors = [
     { name = "kartikm76@yahoo.com", email = "kartikm76@yahoo.com" }
 ]
