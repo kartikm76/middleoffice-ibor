@@ -1,25 +1,78 @@
 services:
+  # ─── PostgreSQL with pgvector + IBOR schema ───
   postgres:
-    image: pgvector/pgvector:pg16
-    container_name: docker-postgres-1   # <— add this to make naming stable (optional)
+    build:
+      context: ./ibor-db
+      dockerfile: Dockerfile
+    container_name: ibor-postgres
     environment:
-      POSTGRES_DB: ibor
+      POSTGRES_DB: ibordb
       POSTGRES_USER: ibor
       POSTGRES_PASSWORD: ibor
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
-      # Mounts below are optional now (script streams SQL/CSV via STDIN),
-      # but keeping them is handy for manual poking inside the container:
-      - ./ibor-db/init:/docker-entrypoint-initdb.d:ro
-      - ./ibor-db/data:/data:ro
-    healthcheck:                         # <— helpful, but script also waits via psql
-      test: ["CMD-SHELL", "pg_isready -U ibor -d ibor || exit 1"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
     restart: unless-stopped
+    networks:
+      - ibor-network
+
+  # ─── Java Spring Boot Middleware ───
+  java:
+    build:
+      context: ./ibor-middleware
+      dockerfile: Dockerfile
+    container_name: ibor-middleware
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ibordb
+      SPRING_DATASOURCE_USERNAME: ibor
+      SPRING_DATASOURCE_PASSWORD: ibor
+      SPRING_PROFILES_ACTIVE: docker
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - ibor-network
+
+  # ─── Python FastAPI AI Gateway ───
+  python:
+    build:
+      context: ./ibor-ai-gateway
+      dockerfile: Dockerfile
+    container_name: ibor-ai-gateway
+    environment:
+      PG_DSN: postgresql://ibor:ibor@postgres:5432/ibordb
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-sk-ant-placeholder}
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - ibor-network
+
+  # ─── React UI (Nginx) ───
+  react:
+    build:
+      context: ./ibor-ui
+      dockerfile: Dockerfile
+    container_name: ibor-ui
+    ports:
+      - "5173:5173"
+    depends_on:
+      - java
+      - python
+    restart: unless-stopped
+    networks:
+      - ibor-network
+
+networks:
+  ibor-network:
+    driver: bridge
 
 volumes:
   pgdata:
