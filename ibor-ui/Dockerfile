@@ -29,14 +29,12 @@ COPY --from=builder /build/dist /usr/share/nginx/html
 
 # Copy Nginx configuration
 RUN cat > /etc/nginx/conf.d/default.conf <<'EOF'
-# Enable dynamic DNS resolution
-resolver 127.0.0.11 valid=10s;
-set $upstream_ibor_middleware ibor-middleware:8080;
-set $upstream_ibor_ai_gateway ibor-ai-gateway:8000;
-
 server {
     listen 5173;
     server_name _;
+
+    # Enable dynamic DNS resolution
+    resolver 127.0.0.11 valid=10s;
 
     # Serve static files
     location / {
@@ -49,7 +47,7 @@ server {
 
     # Proxy API requests to FastAPI gateway
     location /analyst/ {
-        proxy_pass http://$upstream_ibor_ai_gateway/analyst/;
+        proxy_pass http://ibor-ai-gateway:8000/analyst/;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -59,7 +57,7 @@ server {
 
     # Proxy API calls
     location /api/ {
-        proxy_pass http://$upstream_ibor_middleware/api/;
+        proxy_pass http://ibor-middleware:8080/api/;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
