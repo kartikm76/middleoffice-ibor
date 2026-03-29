@@ -16,7 +16,7 @@ RUN mvn dependency:resolve
 COPY src ./src
 
 # Build application (skip tests for speed in Docker)
-RUN mvn clean package -DskipTests -q
+RUN mvn clean package -DskipTests -q -Dspring-boot.build-image.skip=true
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Stage 2: Runtime with minimal JRE
@@ -24,8 +24,8 @@ FROM eclipse-temurin:21-jre-jammy
 
 WORKDIR /app
 
-# Copy built JAR from builder stage
-COPY --from=builder /build/target/*.jar app.jar
+# Copy built JAR from builder stage (gets the main JAR, not sources)
+COPY --from=builder /build/target/ibor-*.jar app.jar
 
 # Create non-root user for security
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app

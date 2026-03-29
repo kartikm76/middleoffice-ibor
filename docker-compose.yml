@@ -6,7 +6,7 @@ services:
       dockerfile: Dockerfile
     container_name: ibor-postgres
     environment:
-      POSTGRES_DB: ibordb
+      POSTGRES_DB: ibor
       POSTGRES_USER: ibor
       POSTGRES_PASSWORD: ibor
     ports:
@@ -18,13 +18,13 @@ services:
       - ibor-network
 
   # ─── Java Spring Boot Middleware ───
-  java:
+  ibor-middleware:
     build:
       context: ./ibor-middleware
       dockerfile: Dockerfile
     container_name: ibor-middleware
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ibordb
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ibor
       SPRING_DATASOURCE_USERNAME: ibor
       SPRING_DATASOURCE_PASSWORD: ibor
       SPRING_PROFILES_ACTIVE: docker
@@ -38,13 +38,13 @@ services:
       - ibor-network
 
   # ─── Python FastAPI AI Gateway ───
-  python:
+  ibor-ai-gateway:
     build:
       context: ./ibor-ai-gateway
       dockerfile: Dockerfile
     container_name: ibor-ai-gateway
     environment:
-      PG_DSN: postgresql://ibor:ibor@postgres:5432/ibordb
+      PG_DSN: postgresql://ibor:ibor@postgres:5432/ibor
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-sk-ant-placeholder}
     ports:
       - "8000:8000"
@@ -56,7 +56,7 @@ services:
       - ibor-network
 
   # ─── React UI (Nginx) ───
-  react:
+  ibor-ui:
     build:
       context: ./ibor-ui
       dockerfile: Dockerfile
@@ -64,8 +64,8 @@ services:
     ports:
       - "5173:5173"
     depends_on:
-      - java
-      - python
+      - ibor-middleware
+      - ibor-ai-gateway
     restart: unless-stopped
     networks:
       - ibor-network
