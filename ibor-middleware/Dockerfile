@@ -24,8 +24,8 @@ FROM eclipse-temurin:21-jre-jammy
 
 WORKDIR /app
 
-# Copy built JAR from builder stage (gets the main JAR, not sources)
-COPY --from=builder /build/target/ibor-*.jar app.jar
+# Copy built JAR from builder stage (Spring Boot executable JAR with all dependencies)
+COPY --from=builder /build/target/ibor-server-*.jar app.jar
 
 # Create non-root user for security
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app

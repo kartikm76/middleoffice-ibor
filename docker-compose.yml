@@ -64,8 +64,10 @@ services:
     ports:
       - "5173:5173"
     depends_on:
-      - ibor-middleware
-      - ibor-ai-gateway
+      ibor-middleware:
+        condition: service_started
+      ibor-ai-gateway:
+        condition: service_started
     restart: unless-stopped
     networks:
       - ibor-network
