@@ -246,20 +246,6 @@ CSV files → stg.* (staging) → ibor.* (curated) → fact_* & dim_* tables
 4. **Promotion** — `stg.*` → `ibor.*` (fact tables and dimension tables)
 5. **Cleanup** — `stg.*` tables cleared
 
-### Run ETL
-
-```bash
-# Full reload
-./ibor-starter/2_data_bootstrap.sh full
-
-# Individual phases
-./ibor-starter/2_data_bootstrap.sh init_infra     # Create schema only
-./ibor-starter/2_data_bootstrap.sh load_staging   # CSV → stg.*
-./ibor-starter/2_data_bootstrap.sh load_main      # stg.* → ibor.*
-```
-
-**Details:** See `ibor-db/init/` for SQL scripts and `ibor-starter/README.md` for CSV field mappings.
-
 ### Market Data Coverage
 
 **Instruments (201 total, 6 asset classes):**
@@ -298,7 +284,7 @@ CSV files → stg.* (staging) → ibor.* (curated) → fact_* & dim_* tables
 | **Market Data** | yfinance 0.2.50+ (Yahoo Finance) |
 | **Frontend** | React 18, Vite, AG Grid, Ant Design |
 | **Concurrency** | Parallel threads for simultaneous data fetching |
-| **Deployment** | Docker Compose (local), Railway.app (production) |
+| **Deployment** | Docker Compose (local + production) |
 
 ---
 
@@ -306,17 +292,29 @@ CSV files → stg.* (staging) → ibor.* (curated) → fact_* & dim_* tables
 
 ### Running the Application
 
+**Docker (Recommended):**
 ```bash
-# 1. Start services (all 4: PostgreSQL, Spring Boot, FastAPI, React)
-./start_all.sh
+bash ibor-starter-docker/start_all.sh
+```
 
-# 2. Open UI
-http://localhost:5173
+**Manual Local Development (Separate Terminals):**
+```bash
+bash ibor-starter-manual/start_all.sh
+```
 
-# 3. Or test API endpoints
+Then open: http://localhost:5173
+
+Test API endpoints:
+```bash
 curl -X POST http://localhost:8000/analyst/chat \
   -H "Content-Type: application/json" \
   -d '{"question":"What are the top positions?"}'
+```
+
+Stop all services:
+```bash
+bash ibor-starter-docker/stop_all.sh      # Docker path
+bash ibor-starter-manual/stop_all.sh       # Manual path
 ```
 
 ### Quick Test

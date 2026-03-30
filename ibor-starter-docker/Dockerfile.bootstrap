@@ -1,0 +1,21 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# IBOR Bootstrap - Database Initialization Job
+# Waits for Postgres to be healthy, then loads schema + CSV data via psql
+# ─────────────────────────────────────────────────────────────────────────────
+
+FROM postgres:16-alpine
+
+WORKDIR /bootstrap
+
+# Install bash, jq, and curl (for health checks)
+RUN apk add --no-cache bash jq curl
+
+# Copy the entire ibor-db directory for access to init scripts and CSV data
+COPY ibor-db/ /bootstrap/ibor-db/
+
+# Copy bootstrap initialization script
+COPY ibor-starter-docker/bootstrap-init.sh /bootstrap/init.sh
+RUN chmod +x /bootstrap/init.sh
+
+# Entrypoint: wait for Postgres, then run initialization
+ENTRYPOINT ["/bin/bash", "/bootstrap/init.sh"]

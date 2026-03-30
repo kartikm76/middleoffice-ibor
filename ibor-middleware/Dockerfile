@@ -27,15 +27,16 @@ WORKDIR /app
 # Copy built JAR from builder stage (Spring Boot executable JAR with all dependencies)
 COPY --from=builder /build/target/ibor-server-*.jar app.jar
 
+# Install curl for health check
+RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+
 # Create non-root user for security
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
 USER appuser
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
-    CMD java -cp app.jar -Dloader.main=com.kmakker.ibor.IborApplication \
-    org.springframework.boot.loader.PropertiesLauncher \
-    || exit 1
+    CMD curl -f http://localhost:8080/actuator/health || exit 1
 
 # Expose port
 EXPOSE 8080

@@ -27,7 +27,21 @@ FROM nginx:alpine
 # Copy built artifacts from builder
 COPY --from=builder /build/dist /usr/share/nginx/html
 
-# Copy Nginx configuration
+# Create custom nginx.conf for non-root execution
+RUN mkdir -p /etc/nginx/conf.d && cat > /etc/nginx/nginx.conf <<'EOF'
+pid /tmp/nginx.pid;
+worker_processes auto;
+events { worker_connections 1024; }
+http {
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+    sendfile on;
+    keepalive_timeout 65;
+    include /etc/nginx/conf.d/*.conf;
+}
+EOF
+
+# Copy site configuration
 RUN cat > /etc/nginx/conf.d/default.conf <<'EOF'
 server {
     listen 5173;
@@ -78,12 +92,10 @@ server {
 }
 EOF
 
-# Create non-root user (Alpine style) and fix Nginx for non-root
+# Create non-root user (Alpine style)
 RUN addgroup -g 1000 appuser && \
     adduser -D -u 1000 -G appuser appuser && \
-    chown -R appuser:appuser /usr/share/nginx/html /var/cache/nginx /var/log/nginx && \
-    sed -i '/^user /d' /etc/nginx/nginx.conf && \
-    sed -i 's|pid /var/run/nginx.pid;|pid /tmp/nginx.pid;|' /etc/nginx/nginx.conf
+    chown -R appuser:appuser /usr/share/nginx/html /var/cache/nginx /var/log/nginx /etc/nginx /tmp
 
 USER appuser
 

@@ -17,6 +17,23 @@ services:
     networks:
       - ibor-network
 
+  # ─── Bootstrap Job (waits for Postgres, loads schema + CSV data) ───
+  bootstrap:
+    build:
+      context: .
+      dockerfile: ibor-starter-docker/Dockerfile.bootstrap
+    container_name: ibor-bootstrap
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      CONTAINER: ibor-postgres
+      DB_NAME: ibor
+      DB_USER: ibor
+    restart: "no"
+    networks:
+      - ibor-network
+
   # ─── Java Spring Boot Middleware ───
   ibor-middleware:
     build:
@@ -33,6 +50,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      bootstrap:
+        condition: service_completed_successfully
     restart: unless-stopped
     networks:
       - ibor-network
@@ -51,6 +70,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      bootstrap:
+        condition: service_completed_successfully
     restart: unless-stopped
     networks:
       - ibor-network
@@ -65,9 +86,11 @@ services:
       - "5173:5173"
     depends_on:
       ibor-middleware:
-        condition: service_started
+        condition: service_healthy
       ibor-ai-gateway:
-        condition: service_started
+        condition: service_healthy
+      bootstrap:
+        condition: service_completed_successfully
     restart: unless-stopped
     networks:
       - ibor-network
